@@ -1,104 +1,128 @@
 <!DOCTYPE HTML>
 <html lang="en">
 <head>
-<title>AIB — Fee-Burn Settlement Layer</title>
+<title>AIB — AI-Built Settlement Layer</title>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="AIB is a settlement layer for the flow of value. Zero premine, stake-weighted VRF, fee-burn economics. Simple like Bitcoin, durable enough for another planet.">
+<meta name="description" content="AIB = AI + Bitcoin. A bright, fast settlement layer for the flow of value. Zero premine, stake-weighted VRF, fee-burn economics.">
 <style>
 :root{
-  --bg:#0a0e1a;--bg2:#101627;--card:rgba(255,255,255,.04);--line:rgba(255,255,255,.09);
-  --ink:#eef2fb;--sub:#9aa7c4;--dim:#5c6a8a;
-  --acc:#5b8cff;--acc2:#8b5cf6;--gold:#f5c26b;--ok:#3ddc97;
-  --grad:linear-gradient(120deg,#5b8cff,#8b5cf6 55%,#e879f9);
+  --bg:#f4f7ff;--bg2:#eef2fe;--card:rgba(255,255,255,.72);--line:rgba(30,60,180,.14);
+  --ink:#101632;--sub:#4a5678;--dim:#8892b0;
+  --ai:#08b6d4;--bt:#f43f8e;--gold:#e8930c;--ok:#00a878;
+  --grad:linear-gradient(100deg,#08b6d4,#3b6cff 45%,#f43f8e);
+  --glowA:0 0 34px rgba(8,182,212,.45);--glowB:0 0 34px rgba(244,63,142,.4);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{font-family:'Inter',-apple-system,'Segoe UI','Noto Sans SC',sans-serif;background:var(--bg);color:var(--ink);line-height:1.7;overflow-x:hidden}
-a{color:var(--acc);text-decoration:none}
-a:hover{text-decoration:none;opacity:.85}
+a{color:#2456e0;text-decoration:none}
 .wrap{max-width:1120px;margin:0 auto;padding:0 28px}
-.kicker{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--sub);font-weight:600}
-h2.sec{font-size:clamp(28px,4vw,44px);font-weight:800;letter-spacing:-.02em;margin:10px 0 14px;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
-.lead{color:var(--sub);font-size:17px;max-width:720px}
+.kicker{font-size:12.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--ai);font-weight:800}
+h2.sec{font-size:clamp(28px,4vw,44px);font-weight:850;letter-spacing:-.02em;margin:10px 0 14px;color:var(--ink)}
+h2.sec em{font-style:normal;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lead{color:var(--sub);font-size:17px;max-width:740px}
 
-/* HERO */
-header.hero{position:relative;min-height:100vh;display:flex;align-items:center;overflow:hidden}
-.hero-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.42;filter:saturate(1.1)}
+/* ==== HERO ==== */
+header.hero{position:relative;min-height:100vh;display:flex;align-items:center;overflow:hidden;background:#0b1026}
+.hero-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.5}
 .hero-veil{position:absolute;inset:0;background:
-  radial-gradient(ellipse 80% 60% at 30% 40%,rgba(10,14,26,.25),rgba(10,14,26,.88) 75%),
-  linear-gradient(180deg,rgba(10,14,26,.55),rgba(10,14,26,.25) 40%,var(--bg))}
-.hero-in{position:relative;z-index:2;padding:120px 0 90px}
+  radial-gradient(ellipse 70% 55% at 25% 35%,rgba(8,182,212,.30),transparent 60%),
+  radial-gradient(ellipse 60% 50% at 80% 70%,rgba(244,63,142,.26),transparent 60%),
+  linear-gradient(180deg,rgba(11,16,38,.35),rgba(11,16,38,.15) 45%,#0b1026 92%)}
+/* grid horizon */
+.hero-grid{position:absolute;left:-20%;right:-20%;bottom:-6%;height:52%;
+  background-image:linear-gradient(rgba(8,182,212,.35) 1px,transparent 1px),linear-gradient(90deg,rgba(8,182,212,.3) 1px,transparent 1px);
+  background-size:64px 44px;transform:perspective(560px) rotateX(62deg);opacity:.5;
+  -webkit-mask-image:linear-gradient(180deg,transparent,#000 55%);mask-image:linear-gradient(180deg,transparent,#000 55%)}
+.hero-in{position:relative;z-index:2;padding:130px 0 110px}
 nav{position:absolute;top:0;left:0;right:0;z-index:10;padding:22px 0}
 nav .wrap{display:flex;align-items:center;gap:34px}
-.brand{font-weight:800;font-size:20px;letter-spacing:.06em;color:var(--ink)}
-.brand span{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
-nav .links{margin-left:auto;display:flex;gap:26px;font-size:14.5px;color:var(--sub)}
-nav .links a{color:var(--sub)} nav .links a:hover{color:var(--ink)}
+.brand{font-weight:900;font-size:21px;letter-spacing:.05em;color:#fff}
+.brand .ai{color:#3ee7ff;text-shadow:var(--glowA)}
+.brand .b{color:#ff7bb0;text-shadow:var(--glowB)}
+nav .links{margin-left:auto;display:flex;gap:26px;font-size:14.5px}
+nav .links a{color:rgba(255,255,255,.75)} nav .links a:hover{color:#fff}
 @media(max-width:760px){nav .links{display:none}}
-.hero h1{font-size:clamp(40px,7vw,76px);font-weight:850;letter-spacing:-.03em;line-height:1.06;margin:18px 0 20px}
-.hero h1 em{font-style:normal;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
-.hero p.tag{font-size:clamp(16px,2.2vw,20px);color:var(--sub);max-width:640px}
-.cta{display:flex;gap:14px;margin-top:34px;flex-wrap:wrap}
-.btn{display:inline-flex;align-items:center;gap:8px;padding:13px 26px;border-radius:12px;font-weight:600;font-size:15px;transition:.2s}
-.btn.pri{background:var(--grad);color:#fff;box-shadow:0 8px 30px rgba(123,92,246,.35)}
-.btn.pri:hover{transform:translateY(-2px);box-shadow:0 12px 38px rgba(123,92,246,.5)}
-.btn.gho{border:1px solid var(--line);color:var(--ink);background:var(--card);backdrop-filter:blur(8px)}
-.btn.gho:hover{border-color:var(--acc)}
-.ticker{position:absolute;bottom:0;left:0;right:0;z-index:3;border-top:1px solid var(--line);background:rgba(10,14,26,.6);backdrop-filter:blur(10px)}
-.ticker .wrap{display:flex;gap:44px;padding:15px 28px;font-size:13.5px;color:var(--dim);overflow-x:auto;white-space:nowrap}
-.ticker b{color:var(--ink);font-weight:700}
-.ticker .g{color:var(--ok)} .ticker .z{color:var(--gold)}
+/* big AI+B logo */
+.fusion{display:flex;align-items:baseline;gap:2px;font-weight:900;font-size:clamp(64px,11vw,120px);line-height:1;letter-spacing:-.03em;margin-bottom:10px}
+.fusion .ai{background:linear-gradient(120deg,#3ee7ff,#08b6d4 60%,#0d7ce0);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 22px rgba(8,182,212,.55))}
+.fusion .plus{font-size:.35em;color:rgba(255,255,255,.4);font-weight:600;margin:0 14px;transform:translateY(-1.1em);display:inline-block}
+.fusion .b{background:linear-gradient(120deg,#ff9ac6,#f43f8e 60%,#d81b60);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 22px rgba(244,63,142,.5))}
+.hero .sub-name{color:rgba(255,255,255,.85);font-size:clamp(15px,2vw,19px);font-weight:600;margin-bottom:18px}
+.hero .sub-name b{color:#3ee7ff}
+.hero p.tag{color:rgba(255,255,255,.72);font-size:clamp(15px,2vw,18px);max-width:660px}
+.hero p.tag b{color:#fff}
+.cta{display:flex;gap:14px;margin-top:32px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:13px 26px;border-radius:12px;font-weight:700;font-size:15px;transition:.2s}
+.btn.pri{background:linear-gradient(100deg,#08b6d4,#3b6cff 55%,#f43f8e);color:#fff;box-shadow:0 10px 34px rgba(59,108,255,.4)}
+.btn.pri:hover{transform:translateY(-2px);box-shadow:0 14px 44px rgba(59,108,255,.55)}
+.btn.gho{border:1px solid rgba(255,255,255,.3);color:#fff;background:rgba(255,255,255,.08);backdrop-filter:blur(10px)}
+.btn.gho:hover{border-color:#3ee7ff;color:#3ee7ff}
+.ticker{position:absolute;bottom:0;left:0;right:0;z-index:3;border-top:1px solid rgba(255,255,255,.14);background:rgba(11,16,38,.72);backdrop-filter:blur(12px)}
+.ticker .wrap{display:flex;gap:40px;padding:14px 28px;font-size:13.5px;overflow-x:auto;white-space:nowrap}
+.ticker span{color:rgba(255,255,255,.5)} .ticker b{color:#fff;font-weight:700}
+.ticker .g{color:#3ef0b1}.ticker .z{color:#ffd166}
 
-/* SECTIONS */
-section.blk{padding:96px 0}
+/* ==== body sections (bright) ==== */
+section.blk{padding:96px 0;position:relative}
 section.blk.alt{background:var(--bg2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;margin-top:38px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:28px 26px;backdrop-filter:blur(6px);transition:.25s}
-.card:hover{border-color:rgba(123,140,255,.45);transform:translateY(-3px)}
-.card .ic{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:21px;background:rgba(91,140,255,.12);border:1px solid rgba(91,140,255,.25);margin-bottom:16px}
-.card h3{font-size:18.5px;font-weight:700;margin-bottom:8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:28px 26px;backdrop-filter:blur(8px);transition:.25s;box-shadow:0 4px 24px rgba(30,60,180,.06)}
+.card:hover{transform:translateY(-4px);box-shadow:0 14px 40px rgba(30,60,180,.14);border-color:rgba(8,182,212,.4)}
+.card .ic{width:48px;height:48px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:16px;background:linear-gradient(135deg,rgba(8,182,212,.14),rgba(244,63,142,.12));border:1px solid rgba(8,182,212,.3)}
+.card h3{font-size:18.5px;font-weight:750;margin-bottom:8px}
 .card p{color:var(--sub);font-size:14.8px}
 
+/* AI strip — the AI highlight band */
+.ai-band{margin-top:46px;border-radius:22px;padding:40px 36px;position:relative;overflow:hidden;
+  background:linear-gradient(115deg,rgba(8,182,212,.12),rgba(59,108,255,.08) 50%,rgba(244,63,142,.10));
+  border:1px solid rgba(8,182,212,.35)}
+.ai-band::after{content:"AI";position:absolute;right:-18px;bottom:-58px;font-size:220px;font-weight:900;letter-spacing:-.05em;
+  background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;opacity:.12;pointer-events:none}
+.ai-band h3{font-size:clamp(20px,3vw,28px);font-weight:800;margin-bottom:10px}
+.ai-band h3 em{font-style:normal;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.ai-band p{color:var(--sub);max-width:640px;font-size:15.5px}
+
 /* numbers */
-.nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;margin-top:38px}
-.num{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:26px}
-.num .v{font-size:clamp(30px,4vw,42px);font-weight:850;letter-spacing:-.02em;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
-.num .k{color:var(--sub);font-size:13.5px;margin-top:6px}
-.num .d{color:var(--dim);font-size:12.5px;margin-top:2px}
+.nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:16px;margin-top:38px}
+.num{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:24px;box-shadow:0 4px 24px rgba(30,60,180,.05)}
+.num .v{font-size:clamp(28px,3.6vw,40px);font-weight:900;letter-spacing:-.02em;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.num .k{color:var(--ink);font-weight:650;font-size:14px;margin-top:6px}
+.num .d{color:var(--dim);font-size:12.8px;margin-top:2px}
 
 /* formula */
-.formula{margin-top:38px;background:linear-gradient(135deg,rgba(91,140,255,.08),rgba(139,92,246,.08));border:1px solid rgba(123,140,255,.3);border-radius:20px;padding:38px 34px;text-align:center}
-.formula .f{font-family:'SF Mono',ui-monospace,Menlo,monospace;font-size:clamp(22px,4vw,36px);font-weight:700;letter-spacing:.02em}
-.formula .f i{color:var(--gold);font-style:normal}
+.formula{margin-top:38px;background:linear-gradient(135deg,rgba(8,182,212,.10),rgba(244,63,142,.08));border:1px solid rgba(59,108,255,.3);border-radius:20px;padding:38px 34px;text-align:center}
+.formula .f{font-family:'SF Mono',ui-monospace,Menlo,monospace;font-size:clamp(22px,4vw,36px);font-weight:800;color:var(--ink)}
+.formula .f i{color:var(--bt);font-style:normal}
 .formula p{color:var(--sub);margin-top:12px;font-size:15px}
 
 /* steps */
 .steps{margin-top:38px;display:grid;gap:14px}
 .step{display:flex;gap:20px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 24px;align-items:flex-start}
-.step .n{flex:none;width:34px;height:34px;border-radius:50%;background:var(--grad);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:15px}
-.step h3{font-size:16.5px;font-weight:700}
+.step .n{flex:none;width:36px;height:36px;border-radius:50%;background:var(--grad);color:#fff;font-weight:850;display:flex;align-items:center;justify-content:center}
+.step h3{font-size:16.5px;font-weight:750}
 .step p{color:var(--sub);font-size:14.5px}
 
 /* roadmap */
 .rm{margin-top:38px;position:relative;padding-left:26px}
-.rm::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,var(--acc),var(--acc2),rgba(139,92,246,0))}
+.rm::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:3px;border-radius:3px;background:linear-gradient(180deg,var(--ai),#3b6cff,var(--bt))}
 .rm .it{position:relative;padding:0 0 34px 22px}
-.rm .it::before{content:"";position:absolute;left:-26px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--acc);box-shadow:0 0 0 4px rgba(91,140,255,.18)}
-.rm .it.done::before{background:var(--ok);box-shadow:0 0 0 4px rgba(61,220,151,.15)}
-.rm .it .when{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);font-weight:700}
+.rm .it::before{content:"";position:absolute;left:-26px;top:7px;width:12px;height:12px;border-radius:50%;background:var(--ai);box-shadow:0 0 0 4px rgba(8,182,212,.2),var(--glowA)}
+.rm .it.done::before{background:var(--ok);box-shadow:0 0 0 4px rgba(0,168,120,.18)}
+.rm .it .when{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);font-weight:800}
 .rm .it h3{font-size:18px;font-weight:750;margin:4px 0 6px}
 .rm .it p{color:var(--sub);font-size:14.8px;max-width:680px}
 
 /* archive */
-details.arch{margin-top:30px;border:1px solid var(--line);border-radius:16px;background:var(--card);overflow:hidden}
-details.arch summary{cursor:pointer;padding:20px 26px;font-weight:650;color:var(--sub);list-style:none;display:flex;align-items:center;gap:10px}
+details.arch{margin-top:34px;border:1px solid var(--line);border-radius:16px;background:var(--card);overflow:hidden}
+details.arch summary{cursor:pointer;padding:20px 26px;font-weight:700;color:var(--sub);list-style:none}
 details.arch summary::-webkit-details-marker{display:none}
-details.arch summary::after{content:"▾";margin-left:auto;color:var(--dim);transition:.2s}
-details.arch[open] summary::after{transform:rotate(180deg)}
+details.arch summary::after{content:"▾";float:right;color:var(--dim)}
+details.arch[open] summary::after{content:"▴"}
 details.arch .bd{padding:6px 26px 24px;color:var(--sub);font-size:14.5px}
-details.arch .yr{display:grid;grid-template-columns:92px 1fr;gap:8px 18px;margin-top:4px}
-details.arch .yr b{color:var(--ink);font-weight:600;font-size:14px}
+details.arch .yr{display:grid;grid-template-columns:92px 1fr;gap:8px 18px}
+details.arch .yr b{color:var(--ink);font-weight:650;font-size:14px}
 details.arch .yr span{font-size:14px;color:var(--dim)}
 
 footer{padding:56px 0 44px;border-top:1px solid var(--line)}
@@ -108,20 +132,22 @@ footer .fl{margin-left:auto;display:flex;gap:22px}
 </head>
 <body>
 
-<!-- ============ HERO (video) ============ -->
+<!-- ================= HERO ================= -->
 <header class="hero" id="top">
   <!--
-    HERO VIDEO — replace this single src when the real AIB film is found.
-    Placeholder uses images/What is Bitcoin.mp4 (3MB, loop+muted+autoplay).
+    HERO VIDEO — single swap point: replace src when the real AIB film is found.
+    Placeholder: images/What is Bitcoin.mp4 (loop, muted, autoplay).
   -->
   <video class="hero-video" loop muted autoplay playsinline poster="images/banner.jpg">
     <source src="images/What is Bitcoin.mp4" type="video/mp4">
   </video>
   <div class="hero-veil"></div>
+  <div class="hero-grid"></div>
   <nav>
     <div class="wrap">
-      <a class="brand" href="#top">AIB<span>·PROTOCOL</span></a>
+      <a class="brand" href="#top"><span class="ai">AI</span><span class="b">B</span> PROTOCOL</a>
       <div class="links">
+        <a href="#ai">AI</a>
         <a href="#economy">Economy</a>
         <a href="#consensus">Consensus</a>
         <a href="#bootstrap">Bootstrap</a>
@@ -131,95 +157,111 @@ footer .fl{margin-left:auto;display:flex;gap:22px}
     </div>
   </nav>
   <div class="wrap hero-in">
-    <div class="kicker">Settlement layer · Rebuilt 2026</div>
-    <h1>Value that moves,<br><em>is value that lives.</em></h1>
-    <p class="tag">AIB settles the <b>flow</b> of value — every trade pays a transparent fee, every fee funds the network. No premine. No gatekeepers. Simple enough to run on another planet.</p>
+    <div class="fusion"><span class="ai">AI</span><span class="plus">+</span><span class="b">B</span></div>
+    <div class="sub-name">Artificial Intelligence&nbsp;·meets·&nbsp;<b>Bitcoin</b>'s discipline</div>
+    <p class="tag">A settlement layer where <b>AI economy meets hard money</b>: every inference call, every trade pays a transparent fee; every fee funds the network. Zero premine. Zero inflation. Zero gatekeepers — and engineered to run on another planet.</p>
     <div class="cta">
-      <a class="btn pri" href="https://github.com/aib-protocol/aib" target="_blank">Read the RFCs</a>
-      <a class="btn gho" href="#economy">How it works ↓</a>
+      <a class="btn pri" href="https://github.com/aib-protocol/aib" target="_blank">⚡ Read the RFCs</a>
+      <a class="btn gho" href="#ai">Why AI + B? ↓</a>
     </div>
   </div>
   <div class="ticker">
     <div class="wrap">
-      <span>SUPPLY <b>3,141,592,653</b> <span class="z">(π×10⁸, hard cap)</span></span>
+      <span>SUPPLY <b>3,141,592,653</b> <span class="z">(π×10⁸ hard cap)</span></span>
       <span>PREMINE <b class="g">0 AIB</b></span>
       <span>FOUNDER GRANT <b class="g">0 AIB</b></span>
       <span>CONSENSUS <b>Stake-weighted VRF</b></span>
-      <span>INFLATION <b class="g">0%</b> — yield comes only from real fees</span>
+      <span>INFLATION <b class="g">0%</b> — yield = real fees only</span>
     </div>
   </div>
 </header>
 
-<!-- ============ ECONOMY ============ -->
-<section class="blk" id="economy">
+<!-- ================= AI BAND ================= -->
+<section class="blk" id="ai">
   <div class="wrap">
-    <div class="kicker">Fee-Burn Economy</div>
-    <h2 class="sec">The middleman's fee becomes the public good.</h2>
-    <p class="lead">Decentralization removes the middleman; the protocol keeps the fee — as transparent, formula-set, public security budget. Liquidity is the mining energy.</p>
+    <div class="kicker">The AI in AIB</div>
+    <h2 class="sec">Not a blockchain <em>for</em> AI.<br>A blockchain <em>powered by</em> the AI economy.</h2>
+    <div class="ai-band">
+      <h3>Every AI inference call is a <em>settlement event</em>.</h3>
+      <p>Models answer; payments clear on-chain in the same breath. The chain never judges an answer — it verifies the signature and collects the fee, so intelligence stays free and money stays honest. Robotic fleets, deep-space agents, research clusters: anything that thinks can transact — natively, without a middleman.</p>
+    </div>
+    <div class="grid3">
+      <div class="card"><div class="ic">🤖</div><h3>Agents transact natively</h3><p>No cards, no accounts, no humans in the loop. An autonomous agent holds keys, pays for compute, sells its output — the wire protocol is the interface.</p></div>
+      <div class="card"><div class="ic">🧠</div><h3>Intelligence settles, chain stays dumb</h3><p>The L1 validates signed, paid, staked — nothing else. AI can be as complex as it likes; complexity lives off-chain and can never corrupt consensus.</p></div>
+      <div class="card"><div class="ic">🛰️</div><h3>Built for off-world AI</h3><p>Local block production + checkpoints tolerate minutes of latency. The swarm on Mars runs the same rules as the cluster on Earth.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ECONOMY ================= -->
+<section class="blk alt" id="economy">
+  <div class="wrap">
+    <div class="kicker">Fee-Burn Economy — the Bitcoin half</div>
+    <h2 class="sec">The middleman's fee becomes <em>the public good.</em></h2>
+    <p class="lead">Decentralization removes the middleman; the protocol keeps the fee — transparent, formula-set, public security budget. Liquidity is the mining energy.</p>
     <div class="formula">
       <div class="f">APR = <i>φ</i> · T / S</div>
       <p><i>φ</i> fee rate · T real transaction flow · S staked supply — market-discovered, never promised. If nobody trades, APR is honestly zero.</p>
     </div>
     <div class="grid3">
-      <div class="card"><div class="ic">🔥</div><h3>Burn, don't print</h3><p>No inflation, ever. Stakers earn only what real usage pays. Yield you can audit, not yield a whitepaper promises.</p></div>
-      <div class="card"><div class="ic">🌊</div><h3>Liquidity = hashpower</h3><p>Volume T is the chain's energy source. Trading feeds security; security attracts trading — a flywheel with no committee in the loop.</p></div>
-      <div class="card"><div class="ic">⚖️</div><h3>Voice = contribution</h3><p>Governance weight is cumulative fee-score: those who travelled farthest and spent most speak loudest. Capturing it costs more than playing honest.</p></div>
+      <div class="card"><div class="ic">🔥</div><h3>Burn, don't print</h3><p>Zero inflation, ever. Stakers earn only what real usage pays — yield you can audit, not a whitepaper's promise.</p></div>
+      <div class="card"><div class="ic">🌊</div><h3>Liquidity = hashpower</h3><p>Volume T is the chain's energy. Trading feeds security; security attracts trading — a flywheel with no committee inside.</p></div>
+      <div class="card"><div class="ic">⚖️</div><h3>Voice = contribution</h3><p>Governance weight is cumulative fee-score: those who travelled farthest and spent most, speak loudest. Capturing it costs more than honesty.</p></div>
     </div>
     <div class="nums">
       <div class="num"><div class="v">π×10⁸</div><div class="k">Total supply — AIB</div><div class="d">3,141,592,653, forever</div></div>
-      <div class="num"><div class="v">0</div><div class="k">Premine / ICO / fund</div><div class="d">Genesis block mints nothing</div></div>
-      <div class="num"><div class="v">100%</div><div class="k">Mined by participation</div><div class="d">Presence, then proof-of-stake</div></div>
+      <div class="num"><div class="v">0</div><div class="k">Premine / ICO / fund</div><div class="d">Genesis mints nothing</div></div>
+      <div class="num"><div class="v">100%</div><div class="k">Mined by participation</div><div class="d">Presence, then stake</div></div>
       <div class="num"><div class="v">0%</div><div class="k">Inflation</div><div class="d">All yield = real fees</div></div>
     </div>
   </div>
 </section>
 
-<!-- ============ CONSENSUS ============ -->
-<section class="blk alt" id="consensus">
+<!-- ================= CONSENSUS ================= -->
+<section class="blk" id="consensus">
   <div class="wrap">
     <div class="kicker">Consensus</div>
-    <h2 class="sec">A lottery nobody can rig.</h2>
-    <p class="lead">Stake-weighted VRF: cryptographic sortition, verified in milliseconds. 10% of the stake = 10% of the odds — but which ticket wins is unpredictable, unforgeable, and provable to everyone.</p>
+    <h2 class="sec">A lottery <em>nobody can rig.</em></h2>
+    <p class="lead">Stake-weighted VRF: cryptographic sortition verified in milliseconds. 10% of the stake = 10% of the odds — but which ticket wins is unpredictable, unforgeable, provable to everyone.</p>
     <div class="grid3">
-      <div class="card"><div class="ic">🎲</div><h3>VRF sortition</h3><p>Each round, VRF(private key, last block hash) &lt; threshold wins block rights. Algorand/Cardano-grade randomness, zero electricity.</p></div>
-      <div class="card"><div class="ic">🧱</div><h3>Simple core, forever</h3><p>The L1 verifies exactly three things: signed, paid, staked. No Turing machine on-chain — exploits die in channels, never reach consensus.</p></div>
-      <div class="card"><div class="ic">🪐</div><h3>Built for elsewhere</h3><p>Local block production + checkpoints tolerate minutes of latency. The same rules hold on Mars — the protocol doesn't care where you are.</p></div>
+      <div class="card"><div class="ic">🎲</div><h3>VRF sortition</h3><p>Each round, VRF(private key, last hash) &lt; threshold wins block rights. Algorand/Cardano-grade randomness at zero electricity.</p></div>
+      <div class="card"><div class="ic">🧱</div><h3>Simple core, forever</h3><p>The L1 verifies exactly three things: signed, paid, staked. No on-chain Turing machine — exploits die in channels, never reach consensus.</p></div>
+      <div class="card"><div class="ic">🚀</div><h3>Launch-ready economics</h3><p>No ASICs, no energy arms race — security scales with the economy it settles, not with burned watts.</p></div>
     </div>
   </div>
 </section>
 
-<!-- ============ BOOTSTRAP ============ -->
-<section class="blk" id="bootstrap">
+<!-- ================= BOOTSTRAP ================= -->
+<section class="blk alt" id="bootstrap">
   <div class="wrap">
     <div class="kicker">Cold start — RFC-003</div>
-    <h2 class="sec">Be there early. That's the whole trick.</h2>
-    <p class="lead">Zero premine creates a puzzle: nobody owns coins, so nobody can stake. The bootstrap window solves it with pure presence.</p>
+    <h2 class="sec">Be there early. <em>That's the whole trick.</em></h2>
     <div class="steps">
       <div class="step"><div class="n">1</div><div><h3>Run a node</h3><p>Download, start, stay online. No permission to ask for, no capital to commit.</p></div></div>
-      <div class="step"><div class="n">2</div><div><h3>Win by lottery</h3><p>First K blocks: one VRF ticket per online node, equal odds for everyone. Winner mints a deliberately small coinbase.</p></div></div>
-      <div class="step"><div class="n">3</div><div><h3>Auto-stake, no locks</h3><p>Bootstrap rewards are recorded as stake automatically. No expiry, no cliff, no dual tokens — idle coins simply earn nothing while active ones compound.</p></div></div>
+      <div class="step"><div class="n">2</div><div><h3>Win by lottery</h3><p>First K blocks: one VRF ticket per online node, equal odds. Winner mints a deliberately small coinbase.</p></div></div>
+      <div class="step"><div class="n">3</div><div><h3>Auto-stake, no locks</h3><p>Bootstrap rewards become stake automatically. No expiry, no cliff, no dual tokens — idle coins simply earn nothing while active ones compound.</p></div></div>
       <div class="step"><div class="n">4</div><div><h3>The chain graduates itself</h3><p>After block K, stake-weighted VRF takes over. No announcement, no human decision — just rules executing.</p></div></div>
     </div>
   </div>
 </section>
 
-<!-- ============ ROADMAP ============ -->
-<section class="blk alt" id="roadmap">
+<!-- ================= ROADMAP + ARCHIVE ================= -->
+<section class="blk" id="roadmap">
   <div class="wrap">
     <div class="kicker">Roadmap</div>
-    <h2 class="sec">From reboot to ecosystem.</h2>
+    <h2 class="sec">From reboot to <em>ecosystem.</em></h2>
     <div class="rm">
-      <div class="it done"><div class="when">2026 · Done</div><h3>Protocol rebuilt in Go</h3><p>Fee-Burn economy, UTXO core, VRF consensus — 30/30 test packages green. RFC-001/002/003/004 published, open for attack.</p></div>
+      <div class="it done"><div class="when">2026 · Done</div><h3>Protocol rebuilt in Go</h3><p>Fee-Burn economy, UTXO core, VRF consensus — 30/30 test packages green. RFC-001→004 published, open for attack.</p></div>
       <div class="it done"><div class="when">2026 · Done</div><h3>Absolute zero premine</h3><p>Genesis mints nothing. Founder = miner #1, Satoshi model: same binary, same rules, equal odds.</p></div>
-      <div class="it"><div class="when">Now</div><h3>Community review</h3><p>Bootstrap window parameters (K, coinbase, unbonding) under open discussion — bring your sharpest attack.</p></div>
-      <div class="it"><div class="when">Next</div><h3>Testnet + bootstrap window live</h3><p>Pure-presence VRF lottery minting the first coins, then automatic graduation to stake-weighted mode.</p></div>
+      <div class="it"><div class="when">Now</div><h3>Community review</h3><p>Bootstrap parameters (K, coinbase, unbonding) under open discussion — bring your sharpest attack.</p></div>
+      <div class="it"><div class="when">Next</div><h3>Testnet + bootstrap window live</h3><p>Presence-minted first coins, then automatic graduation to stake-weighted mode.</p></div>
       <div class="it"><div class="when">Then</div><h3>Trading L2 + payment channels</h3><p>Hyperliquid-class orderbook settling on AIB; Lightning-style instant payments. Every trade feeds the flywheel.</p></div>
-      <div class="it"><div class="when">Later</div><h3>Trustless anchoring + native embed</h3><p>BTC/ETH/USDT visit to earn via light-client burn-and-mint; robots, agents and spacecraft speak AIB natively.</p></div>
+      <div class="it"><div class="when">Later</div><h3>Trustless anchoring + native AI embed</h3><p>BTC/ETH/USDT visit to earn via light-client burn-and-mint; robots, agents and spacecraft speak AIB natively.</p></div>
     </div>
     <details class="arch">
       <summary>📦 Archive — the original chain, 2015–2025</summary>
       <div class="bd">
-        <p style="margin-bottom:12px">The first AIB (2015) was a Bitcoin-fork with scrypt + AuxPoW merge mining. Its exchanges and services are long gone. The current protocol shares the name and the decentralization spirit — nothing else. Full history:</p>
+        <p style="margin-bottom:12px">The first AIB (2015) was a Bitcoin-fork with scrypt + AuxPoW merge mining; its exchanges and services are long gone. The current protocol shares the name and the decentralization spirit — nothing else.</p>
         <div class="yr">
           <b>2015 Apr</b><span>Chain launch (scrypt PoW Bitcoin fork)</span>
           <b>2016 Mar</b><span>YoBit listing (abandoned 2018)</span>
@@ -235,10 +277,10 @@ footer .fl{margin-left:auto;display:flex;gap:22px}
   </div>
 </section>
 
-<!-- ============ FOOTER ============ -->
+<!-- ================= FOOTER ================= -->
 <footer>
   <div class="wrap">
-    <span><b style="color:var(--ink)">AIB Protocol</b> — simple like Bitcoin, durable like gravity.</span>
+    <span><b style="color:var(--ink)"><span style="color:var(--ai)">AI</span><span style="color:var(--bt)">B</span> Protocol</b> — intelligence settles here.</span>
     <div class="fl">
       <a href="https://github.com/aib-protocol/aib" target="_blank">GitHub</a>
       <a href="https://github.com/aib-protocol/aib/issues" target="_blank">Issues</a>
