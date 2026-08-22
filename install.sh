@@ -88,7 +88,7 @@ Description=AIB Node (testnet)
 After=network-online.target
 
 [Service]
-ExecStart=$BIN -data-dir $INSTALL_DIR -api-port 8080 -validator
+ExecStart=$BIN -data-dir $INSTALL_DIR -api-port 8080
 Restart=on-failure
 RestartSec=5
 
