@@ -78,6 +78,14 @@ case ":$PATH:" in
   *) warn "Add to PATH:  export PATH=\"\$PATH:$BIN_DIR\"" ;;
 esac
 
+# ---------- pick a free P2P port (51413 default; bump if taken) ----------
+P2P_PORT=51413
+while ss -tlnH "( sport = :$P2P_PORT )" 2>/dev/null | grep -q .; do
+  P2P_PORT=$((P2P_PORT+1))
+done
+[ "$P2P_PORT" != "51413" ] && info "Port 51413 busy — using P2P port $P2P_PORT"
+NODE_ARGS="-data-dir $INSTALL_DIR -api-port 8080 -p2p-port $P2P_PORT"
+
 # ---------- systemd --user (Linux only) ----------
 RUN_NOW=0
 if [ "$OS" = "linux" ] && command -v systemctl >/dev/null 2>&1; then
@@ -88,7 +96,7 @@ Description=AIB Node (testnet)
 After=network-online.target
 
 [Service]
-ExecStart=$BIN -data-dir $INSTALL_DIR -api-port 8080
+ExecStart=$BIN $NODE_ARGS
 Restart=on-failure
 RestartSec=5
 
@@ -97,20 +105,19 @@ WantedBy=default.target
 UNIT
   systemctl --user daemon-reload
   systemctl --user enable --now "${SERVICE_NAME}.service" 2>/dev/null && ok "Service started (systemd --user: aib-node)" || {
-    warn "systemd --user unavailable — falling back to background run"
+    info "systemd --user unavailable — starting in background automatically"
     RUN_BG=1
   }
 else
-  warn "No systemd (or macOS) — running in background"
+  info "No systemd (or macOS) — starting in background automatically"
   RUN_BG=1
 fi
 
 # ---------- fallback: direct background run ----------
 if [ "${RUN_BG:-0}" = "1" ]; then
   mkdir -p "$INSTALL_DIR"
-  nohup "$BIN" -data-dir "$INSTALL_DIR" -api-port 8080 >> "$INSTALL_DIR/node.log" 2>&1 &
+  setsid nohup "$BIN" $NODE_ARGS >> "$INSTALL_DIR/node.log" 2>&1 < /dev/null &
   BG_PID=$!
-  disown $BG_PID 2>/dev/null || true
   ok "Node started in background (pid $BG_PID, log: $INSTALL_DIR/node.log)"
 fi
 
@@ -130,18 +137,23 @@ else
   die "Install incomplete — send the log above to the team"
 fi
 
+# ---------- live chain status ----------
+info "Node is up. Checking chain sync..."
+sleep 3
+H=$(curl -s --max-time 4 http://127.0.0.1:8080/v1/block/latest 2>/dev/null | grep -o '"height":[0-9]*' | head -1 | cut -d: -f2)
+P=$(curl -s --max-time 4 http://127.0.0.1:8080/v1/peers 2>/dev/null | grep -o '"total":[0-9]*' | head -1 | cut -d: -f2)
+ok "Chain height: ${H:-0} | Peers: ${P:-0} (syncing from seed)"
+
 cat <<'DONE'
 
   ╔══════════════════════════════════════════════╗
-     AIB node installed  ·  zero-root install
+     AIB node is RUNNING  ·  one command, done
   ╚══════════════════════════════════════════════╝
 
-  Binary   : ~/.aib/bin/aib-node        (static, no deps)
-  Data     : ~/.aib/data/
-  Config   : ~/.aib/config.toml
-  Service  : systemctl --user status aib-node
-  Logs     : journalctl --user -u aib-node -f
-  API      : http://127.0.0.1:8080/health
-  Uninstall: systemctl --user disable --now aib-node; rm -rf ~/.aib
+  Status   : curl 127.0.0.1:8080/v1/block/latest
+  Health   : curl 127.0.0.1:8080/health
+  Mining   : curl 127.0.0.1:8080/v1/mining
+  Logs     : journalctl --user -u aib-node -f   (or ~/.aib/node.log)
+  Stop     : systemctl --user stop aib-node     (or: pkill -f aib-node)
 
 DONE
