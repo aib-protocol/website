@@ -97,21 +97,37 @@ WantedBy=default.target
 UNIT
   systemctl --user daemon-reload
   systemctl --user enable --now "${SERVICE_NAME}.service" 2>/dev/null && ok "Service started (systemd --user: aib-node)" || {
-    warn "systemd --user unavailable (no login session?). Run manually:"
-    warn "  $BIN -data-dir $INSTALL_DIR"
+    warn "systemd --user unavailable — falling back to background run"
+    RUN_BG=1
   }
-  RUN_NOW=1
 else
-  warn "No systemd (or macOS) — run manually:"
-  warn "  $BIN -data-dir $INSTALL_DIR"
+  warn "No systemd (or macOS) — running in background"
+  RUN_BG=1
 fi
 
-# ---------- quick health check ----------
-if [ "$RUN_NOW" = "1" ]; then
-  sleep 2
-  if curl -s -o /dev/null --max-time 3 "http://127.0.0.1:8080/health" 2>/dev/null; then
-    ok "Health check: node is up (http://127.0.0.1:8080/health)"
-  fi
+# ---------- fallback: direct background run ----------
+if [ "${RUN_BG:-0}" = "1" ]; then
+  mkdir -p "$INSTALL_DIR"
+  nohup "$BIN" -data-dir "$INSTALL_DIR" -api-port 8080 >> "$INSTALL_DIR/node.log" 2>&1 &
+  BG_PID=$!
+  disown $BG_PID 2>/dev/null || true
+  ok "Node started in background (pid $BG_PID, log: $INSTALL_DIR/node.log)"
+fi
+
+# ---------- health check: wait until up, else show real error ----------
+info "Waiting for node to come up..."
+UP=0
+for i in $(seq 1 15); do
+  if curl -s -o /dev/null --max-time 2 "http://127.0.0.1:8080/health" 2>/dev/null; then UP=1; break; fi
+  sleep 1
+done
+if [ "$UP" = "1" ]; then
+  ok "Node is UP: http://127.0.0.1:8080/health"
+else
+  warn "Node did NOT come up in 15s. Last log lines:"
+  tail -n 15 "$INSTALL_DIR/node.log" 2>/dev/null | sed 's/^/    /'
+  journalctl --user -u aib-node -n 15 --no-pager 2>/dev/null | tail -8 | sed 's/^/    /'
+  die "Install incomplete — send the log above to the team"
 fi
 
 cat <<'DONE'
