@@ -103,7 +103,7 @@ RestartSec=5
 [Install]
 WantedBy=default.target
 UNIT
-  systemctl --user daemon-reload
+  systemctl --user daemon-reload 2>/dev/null || true
   systemctl --user enable --now "${SERVICE_NAME}.service" 2>/dev/null && ok "Service started (systemd --user: aib-node)" || {
     info "systemd --user unavailable — starting in background automatically"
     RUN_BG=1
