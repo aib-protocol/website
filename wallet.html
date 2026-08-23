@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIB Wallet</title>
+<link rel="icon" href="images/logo.ico">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'SF Mono','Fira Code',monospace}
+body{background:#0a0e17;color:#e8eef7;min-height:100vh;display:flex;flex-direction:column;align-items:center;font-size:14px}
+.glow{position:fixed;width:600px;height:600px;border-radius:50%;filter:blur(180px);opacity:.13;pointer-events:none}
+.g1{background:#00e5ff;top:-200px;left:-100px}.g2{background:#e8a013;bottom:-250px;right:-100px}
+.card{width:min(680px,94vw);background:rgba(20,26,40,.82);border:1px solid rgba(0,229,255,.18);border-radius:18px;padding:28px;margin-top:22px;backdrop-filter:blur(8px);box-shadow:0 18px 60px rgba(0,0,0,.45)}
+h1{font-size:19px;font-weight:600;letter-spacing:.14em;display:flex;align-items:center;gap:10px}
+h1 .dot{width:9px;height:9px;border-radius:50%;background:#22c55e;box-shadow:0 0 12px #22c55e;animation:p 2s infinite}
+@keyframes p{50%{opacity:.4}}
+.bal{margin:24px 0 6px;text-align:center}
+.bal .n{font-size:52px;font-weight:700;background:linear-gradient(90deg,#00e5ff,#ffd76a);-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:.02em}
+.bal .u{color:#7a8aa0;font-size:13px;letter-spacing:.3em;margin-top:4px}
+.sub{display:flex;justify-content:center;gap:28px;color:#7a8aa0;font-size:12px;margin:14px 0 4px}
+.sub b{color:#c8d6e8;font-weight:600}
+.row{display:flex;justify-content:space-between;padding:11px 4px;border-top:1px solid rgba(255,255,255,.05);font-size:13px}
+.row .k{color:#7a8aa0}.row .v{color:#e8eef7;word-break:break-all;text-align:right;max-width:420px}
+.addr{cursor:pointer;position:relative}
+.addr:hover:after{content:'click to copy';position:absolute;right:0;bottom:18px;font-size:10px;color:#00e5ff}
+.bar{height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;margin:16px 0 6px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,#00e5ff,#e8a013);border-radius:3px;transition:width .6s}
+.mini{display:flex;justify-content:space-between;font-size:11px;color:#7a8aa0}
+.tabs{display:flex;gap:8px;margin:20px 0 0;width:min(680px,94vw)}
+.tab{flex:1;text-align:center;padding:11px;border-radius:12px 12px 0 0;background:rgba(20,26,40,.5);color:#7a8aa0;cursor:pointer;border:1px solid transparent;border-bottom:none;font-size:13px;letter-spacing:.05em}
+.tab.on{background:rgba(20,26,40,.82);color:#00e5ff;border-color:rgba(0,229,255,.18)}
+.hide{display:none}
+.note{color:#5a6a80;font-size:11px;line-height:1.7;margin-top:10px;text-align:center}
+.mine{color:#ffd76a}
+#tip{position:fixed;bottom:26px;background:rgba(0,229,255,.14);border:1px solid rgba(0,229,255,.3);color:#00e5ff;padding:9px 18px;border-radius:99px;font-size:12px;opacity:0;transition:opacity .3s;pointer-events:none}
+a{color:#00e5ff;text-decoration:none}
+</style>
+</head>
+<body>
+<div class="glow g1"></div><div class="glow g2"></div>
+
+<div class="tabs">
+  <div class="tab on" id="t-w" onclick="sw('w')">WALLET</div>
+  <div class="tab" id="t-m" onclick="sw('m')">MINING</div>
+</div>
+
+<div class="card" id="w">
+  <h1><span class="dot" id="live"></span>AIB WALLET · TESTNET</h1>
+  <div class="bal"><div class="n" id="bal">—</div><div class="u">AIB</div></div>
+  <div class="sub"><span>UTXOs <b id="utxos">—</b></span><span>Chain height <b id="hgt">—</b></span><span>Mode <b id="mode">—</b></span></div>
+  <div class="row"><span class="k">Address</span><span class="v addr" id="addr" title="click to copy">—</span></div>
+  <div class="row"><span class="k">Balance (raw)</span><span class="v" id="rawl">—</span></div>
+  <div class="row"><span class="k">Node API</span><span class="v">127.0.0.1:8080</span></div>
+  <div class="note">Live balance from your node's UTXO set — every AIB here was mined on-chain.<br>Run your own node: <b>curl -sSfL https://aib.one/install.sh | bash</b></div>
+</div>
+
+<div class="card hide" id="m">
+  <h1><span class="dot"></span>MINING · VRF SORTITION</h1>
+  <div class="bal"><div class="n mine" id="cb">—</div><div class="u">AIB MINED</div></div>
+  <div class="bar"><i id="wr-bar" style="width:0%"></i></div>
+  <div class="mini"><span>win rate</span><span id="wr">—</span></div>
+  <div class="row"><span class="k">Slots won</span><span class="v" id="sw">—</span></div>
+  <div class="row"><span class="k">Slots missed</span><span class="v" id="sm">—</span></div>
+  <div class="row"><span class="k">Last win</span><span class="v" id="lw">—</span></div>
+  <div class="row"><span class="k">Epoch APR (φ=7% cap)</span><span class="v" id="apr">—</span></div>
+  <div class="row"><span class="k">Fees earned / burned</span><span class="v" id="fb">—</span></div>
+  <div class="note" id="mnote">Mining = running the node with -validator. Pure-stake VRF sortition picks each block's producer.</div>
+</div>
+
+<div id="tip">copied</div>
+<script>
+const $=i=>document.getElementById(i);
+function sw(x){for(const k of['w','m'])$('t-'+k).classList.toggle('on',k===x),$(k).classList.toggle('hide',k!==x)}
+$('addr').onclick=()=>{navigator.clipboard.writeText($('addr').textContent);$('tip').style.opacity=1;setTimeout(()=>$('tip').style.opacity=0,1200)};
+async function pull(){
+ try{
+  const w=await(await fetch('/v1/wallet/info')).json(), d=w.data||{};
+  if(d.address){$('bal').textContent=(+d.balance_aib).toLocaleString();$('addr').textContent=d.address;
+   $('rawl').textContent=d.balance_raw+' sat';$('utxos').textContent=d.utxo_count??0;
+   $('hgt').textContent=d.height??0;$('mode').textContent=d.mining?'validator ✦':'follower (sync only)';
+   $('live').style.background=d.mining?'#22c55e':'#00e5ff';}
+  const m=await(await fetch('/v1/mining')).json(), g=m.data||{};
+  if(g.slots_won!==undefined){$('cb').textContent=(+g.coinbase_earned_aib||0).toLocaleString();
+   $('sw').textContent=g.slots_won;$('sm').textContent=g.slots_missed??0;
+   $('wr').textContent=(+g.win_rate||0)+'%';$('wr-bar').style.width=Math.min(100,+g.win_rate||0)+'%';
+   $('lw').textContent=g.last_win_height?('block '+g.last_win_height):'—';
+   const e=g.epoch||{};$('apr').textContent=e.realized_apr||'—';
+   $('fb').textContent=(e.fees_aib||0)+' / '+(e.burn_aib||0)+' AIB';}
+ }catch(e){$('bal').textContent='offline';$('live').style.background='#ef4444'}
+}
+pull();setInterval(pull,5000);
+</script>
+</body>
+</html>
