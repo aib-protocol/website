@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # AIB Node installer — no root required, installs to ~/.aib
-# Usage: curl -sSfL https://www.aib.one/install.sh | bash
+# Usage: curl -sSfL https://aib.one/install.sh | bash
 set -euo pipefail
 
 VERSION="v0.9.0-testnet"
