@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIB Explorer</title>
+<link rel="icon" href="images/logo.ico">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'SF Mono','Fira Code',monospace}
+body{background:#0a0e17;color:#e8eef7;font-size:14px;min-height:100vh}
+.glow{position:fixed;width:700px;height:700px;border-radius:50%;filter:blur(200px);opacity:.1;pointer-events:none}
+.g1{background:#00e5ff;top:-250px;right:-150px}.g2{background:#e8a013;bottom:-300px;left:-150px}
+.wrap{max-width:1180px;margin:0 auto;padding:26px 18px;position:relative}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;flex-wrap:wrap;gap:12px}
+h1{font-size:20px;letter-spacing:.14em;font-weight:600}
+h1 span{color:#00e5ff}
+nav a{color:#7a8aa0;font-size:13px;text-decoration:none;margin-left:18px}
+nav a:hover{color:#00e5ff}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:22px}
+.stat{background:rgba(20,26,40,.8);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:16px}
+.stat .k{color:#7a8aa0;font-size:11px;letter-spacing:.12em;margin-bottom:7px}
+.stat .v{font-size:22px;font-weight:700}
+.stat .v.gr{color:#22c55e}.stat .v.cy{color:#00e5ff}.stat .v.gd{color:#ffd76a}
+.search{display:flex;gap:8px;margin-bottom:22px}
+.search input{flex:1;background:rgba(20,26,40,.8);border:1px solid rgba(0,229,255,.2);border-radius:11px;padding:12px 16px;color:#e8eef7;font-size:14px;outline:none}
+.search input:focus{border-color:rgba(0,229,255,.5)}
+.search button{background:linear-gradient(90deg,#00e5ff26,#e8a01326);border:1px solid rgba(0,229,255,.35);border-radius:11px;padding:12px 24px;color:#00e5ff;cursor:pointer;font-size:13px;letter-spacing:.08em}
+.panel{background:rgba(20,26,40,.8);border:1px solid rgba(255,255,255,.07);border-radius:16px;overflow:hidden;margin-bottom:22px}
+.panel h2{font-size:12px;letter-spacing:.16em;color:#7a8aa0;padding:15px 18px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between}
+.panel h2 .live{color:#22c55e;animation:p 2s infinite}
+@keyframes p{50%{opacity:.4}}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{color:#7a8aa0;text-align:left;padding:11px 18px;font-weight:400;font-size:11px;letter-spacing:.1em;border-bottom:1px solid rgba(255,255,255,.06)}
+td{padding:11px 18px;border-bottom:1px solid rgba(255,255,255,.03);white-space:nowrap}
+tr:hover td{background:rgba(0,229,255,.03);cursor:pointer}
+.mono{color:#00e5ff}
+.dim{color:#7a8aa0}
+.gd{color:#ffd76a}
+.tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10.5px;background:rgba(34,197,94,.12);color:#22c55e}
+#detail{display:none}
+#detail .panel{border-color:rgba(0,229,255,.25)}
+.back{color:#00e5ff;cursor:pointer;font-size:12px;padding:12px 18px;display:inline-block}
+.kv{display:grid;grid-template-columns:180px 1fr;gap:8px 14px;padding:16px 18px;font-size:13px}
+.kv .k{color:#7a8aa0}.kv .v{word-break:break-all}
+footer{text-align:center;color:#5a6a80;font-size:11px;padding:20px}
+@media(max-width:700px){.kv{grid-template-columns:1fr}.kv .k{margin-top:8px}}
+</style>
+</head>
+<body>
+<div class="glow g1"></div><div class="glow g2"></div>
+<div class="wrap">
+<header>
+  <h1>AIB <span>EXPLORER</span> · TESTNET</h1>
+  <nav><a href="index.html">HOME</a><a href="wallet.html">WALLET</a><a href="#" onclick="return goLatest()">BLOCKS</a></nav>
+</header>
+
+<div class="stats">
+  <div class="stat"><div class="k">CHAIN HEIGHT</div><div class="v cy" id="s-height">—</div></div>
+  <div class="stat"><div class="k">BLOCK TIME</div><div class="v" id="s-bt">5s</div></div>
+  <div class="stat"><div class="k">SUPPLY MINED</div><div class="v gd" id="s-supply">—</div></div>
+  <div class="stat"><div class="k">PEERS</div><div class="v gr" id="s-peers">—</div></div>
+  <div class="stat"><div class="k">EPOCH</div><div class="v" id="s-epoch">—</div></div>
+</div>
+
+<div class="search">
+  <input id="q" placeholder="Search block height (e.g. 100) or address (64-hex)" onkeydown="if(event.key==='Enter')search()">
+  <button onclick="search()">SEARCH</button>
+</div>
+
+<div id="detail"><span class="back" onclick="hideDetail()">← back to blocks</span>
+  <div class="panel"><h2>BLOCK DETAIL</h2><div class="kv" id="d-kv"></div></div>
+</div>
+
+<div class="panel">
+  <h2><span>LATEST BLOCKS</span><span class="live">● LIVE</span></h2>
+  <table><thead><tr><th>HEIGHT</th><th>HASH</th><th>PROPOSER</th><th>TXs</th><th>COINBASE</th><th>TIME (UTC)</th></tr></thead>
+  <tbody id="blocks"></tbody></table>
+</div>
+
+<div class="panel">
+  <h2><span>TOP MINERS (by slots won)</span></h2>
+  <table><thead><tr><th>ADDRESS</th><th>SLOTS WON</th><th>MINED AIB</th><th>BALANCE</th></tr></thead>
+  <tbody id="miners"><tr><td colspan="4" class="dim" style="text-align:center;padding:20px">loading…</td></tr></tbody></table>
+</div>
+
+<footer>Real data from the AIB seed node · synced via P2P · <a href="install.sh" style="color:#00e5ff">run your own node</a></footer>
+</div>
+<script>
+const $=i=>document.getElementById(i);
+const api=p=>fetch(p).then(r=>r.json());
+const AIB=s=>(+s/1e8).toLocaleString(undefined,{maximumFractionDigits:2});
+const ago=t=>{const s=(Date.now()-new Date(t))/1e3;return s<60?Math.round(s)+'s ago':s<3600?Math.round(s/60)+'m ago':new Date(t).toISOString().slice(11,19)};
+
+async function head(){
+ try{
+  const b=await api('/v1/block/latest').then(r=>r.data);
+  $('s-height').textContent=b.height.toLocaleString();
+  // supply ≈ coinbase per block × height (1 AIB in bootstrap window)
+  const m=await api('/v1/mining');
+  const g=m.data||m;
+  $('s-supply').textContent=AIB((g.coinbase_earned_aib||0)*1e8)+' AIB';
+  const p=await api('/v1/peers').then(r=>r.data);
+  $('s-peers').textContent=(p.total||0)+1;
+  const e=g.epoch||{};
+  $('s-epoch').textContent=e.epoch??'—';
+ }catch(e){$('s-height').textContent='offline'}
+}
+
+async function blocks(){
+ try{
+  const latest=await api('/v1/block/latest').then(r=>r.data);
+  const rows=[];
+  for(let h=latest.height;h>Math.max(0,latest.height-15);h--){
+    const b=await api('/v1/block/'+h).then(r=>r.data).catch(()=>null);
+    if(b&&b.hash&&!b.hash.startsWith('0000000000'))rows.push(b);
+  }
+  $('blocks').innerHTML=rows.map(b=>`<tr onclick="showBlock(${b.height})">
+    <td class="mono">${b.height}</td>
+    <td class="dim">${b.hash.slice(0,18)}…</td>
+    <td class="dim">${(b.validator||'').slice(0,12)}…</td>
+    <td>${b.tx_count}</td>
+    <td class="gd">${b.tx_count>0?'1 AIB':'—'}</td>
+    <td class="dim">${b.timestamp?b.timestamp.slice(11,19):'—'}</td></tr>`).join('');
+ }catch(e){}
+}
+
+async function miners(){
+ try{
+  const m=await api('/v1/mining');const g=m.data||m;
+  const w=await api('/v1/wallet/info').then(r=>r.data);
+  if(w&&w.address){
+    const bal=await api('/v1/balance/'+w.address).then(r=>r.data);
+    $('miners').innerHTML=`<tr onclick="showAddr('${w.address}')"><td class="mono">${w.address.slice(0,20)}…</td><td class="gd">${g.slots_won??0}</td><td class="gd">${(g.coinbase_earned_aib||0).toLocaleString()}</td><td>${bal&&bal.balance!==undefined?AIB(bal.balance)+' AIB':'—'}</td></tr>`;
+  }else{$('miners').innerHTML='<tr><td colspan="4" class="dim" style="text-align:center;padding:16px">no miners yet</td></tr>'}
+ }catch(e){}
+}
+
+function showBlock(h){
+  api('/v1/block/'+h).then(r=>r.data).then(b=>{
+    $('d-kv').innerHTML=`
+      <div class="k">Height</div><div class="v mono">${b.height}</div>
+      <div class="k">Hash</div><div class="v mono">${b.hash}</div>
+      <div class="k">Prev hash</div><div class="v mono dim">${b.prev_hash}</div>
+      <div class="k">Proposer</div><div class="v mono">${b.validator}</div>
+      <div class="k">Transactions</div><div class="v">${b.tx_count}</div>
+      <div class="k">Timestamp</div><div class="v">${b.timestamp}</div>`;
+    $('detail').style.display='block';window.scrollTo({top:0,behavior:'smooth'});
+  });
+}
+function showAddr(a){
+  api('/v1/balance/'+a).then(r=>r.data).then(b=>{
+    $('d-kv').innerHTML=`
+      <div class="k">Address</div><div class="v mono">${a}</div>
+      <div class="k">Balance</div><div class="v gd">${AIB(b.balance)} AIB (${b.balance} sat)</div>
+      <div class="k">UTXOs</div><div class="v">${b.utxo_count??0}</div>`;
+    $('detail').style.display='block';window.scrollTo({top:0,behavior:'smooth'});
+  });
+}
+function hideDetail(){$('detail').style.display='none'}
+function search(){
+  const q=$('q').value.trim();
+  if(/^\d+$/.test(q))showBlock(+q);
+  else if(/^[0-9a-fA-F]{64}$/.test(q))showAddr(q);
+  else alert('Enter a block height (number) or 64-char hex address');
+}
+function goLatest(){hideDetail();window.scrollTo(0,0);return false}
+head();blocks();miners();setInterval(()=>{head();blocks()},5000);
+</script>
+</body>
+</html>
