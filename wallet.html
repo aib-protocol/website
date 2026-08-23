@@ -47,8 +47,8 @@ a{color:#00e5ff;text-decoration:none}
 <div class="card" id="w">
   <h1><span class="dot" id="live"></span>AIB WALLET · TESTNET</h1>
   <div style="display:flex;gap:8px;margin-top:14px">
-    <input id="ninput" placeholder="your node: http://IP:8080" style="flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(0,229,255,.2);border-radius:9px;padding:9px 12px;color:#e8eef7;font-size:12px;outline:none">
-    <button onclick="setNode()" style="background:linear-gradient(90deg,#00e5ff22,#e8a01322);border:1px solid rgba(0,229,255,.3);border-radius:9px;padding:9px 16px;color:#00e5ff;cursor:pointer;font-size:12px">CONNECT</button>
+    <input id="ninput" placeholder="address (64-hex) or node: http://IP:8080" style="flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(0,229,255,.2);border-radius:9px;padding:9px 12px;color:#e8eef7;font-size:12px;outline:none">
+    <button onclick="lookup()" style="background:linear-gradient(90deg,#00e5ff22,#e8a01322);border:1px solid rgba(0,229,255,.3);border-radius:9px;padding:9px 16px;color:#00e5ff;cursor:pointer;font-size:12px">LOOKUP</button>
   </div>
   <div class="bal"><div class="n" id="bal">—</div><div class="u">AIB</div></div>
   <div class="sub"><span>UTXOs <b id="utxos">—</b></span><span>Chain height <b id="hgt">—</b></span><span>Mode <b id="mode">—</b></span></div>
@@ -80,6 +80,26 @@ if(qs.get('node')){NODE=qs.get('node');localStorage.setItem('aib_node',NODE)}
 $('ninput').value=NODE;
 const api=p=>(NODE?NODE.replace(/\/$/,''):'')+p;
 function setNode(){NODE=$('ninput').value.trim().replace(/\/$/,'');localStorage.setItem('aib_node',NODE);pull()}
+const BASE=location.protocol==='file:'?'http://127.0.0.1:8080':'';
+function lookup(){
+  const q=$('ninput').value.trim().replace(/\/$/,'');
+  if(!q)return;
+  if(/^https?:\/\//.test(q)){NODE=q;localStorage.setItem('aib_node',NODE);pull();return}
+  if(/^[0-9a-fA-F]{64}$/.test(q)){ADDR=q;localStorage.setItem('aib_addr',q);showAddr(q);return}
+  alert('Enter a 64-hex address or a node URL (http://IP:8080)');
+}
+let ADDR=localStorage.getItem('aib_addr')||'';
+function showAddr(a){
+  fetch((BASE||'')+'/v1/balance/'+a).then(r=>r.json()).then(r=>{
+    const d=r.data||{};
+    $('bal').textContent=(+d.balance/1e8||0).toLocaleString();
+    $('addr').textContent=a;
+    $('rawl').textContent=(d.balance||0)+' sat';
+    $('utxos').textContent=d.utxo_count??0;
+    $('mode').textContent='read-only view';
+    $('live').style.background='#00e5ff';
+  }).catch(()=>{$('bal').textContent='offline';$('live').style.background='#ef4444'});
+}
 function mcWarn(){const warn=document.createElement('div');warn.id='mcw';warn.style.cssText='margin-top:10px;padding:9px 13px;border-radius:9px;background:rgba(255,196,0,.08);border:1px solid rgba(255,196,0,.25);color:#ffd76a;font-size:11px;line-height:1.6;display:none';
 warn.innerHTML='⚠ HTTPS 页面无法读取 HTTP 节点(浏览器限制).<br>👉 <b>右键保存本页到本地</b>打开(file:// 无此限制), 输入你的节点地址即可';document.querySelector('.card#w .note').before(warn);return warn}
 function sw(x){for(const k of['w','m'])$('t-'+k).classList.toggle('on',k===x),$(k).classList.toggle('hide',k!==x)}
@@ -101,7 +121,7 @@ async function pull(){
  }catch(e){$('bal').textContent='offline';$('live').style.background='#ef4444';
   if(location.protocol==='https:'&&NODE&&NODE.startsWith('http:')){const w=mcWarn();w.style.display='block'}}
 }
-pull();setInterval(pull,5000);
+if(ADDR){$('ninput').value=ADDR;showAddr(ADDR)}else pull();setInterval(()=>{if(ADDR)showAddr(ADDR);else pull()},5000);
 </script>
 </body>
 </html>
