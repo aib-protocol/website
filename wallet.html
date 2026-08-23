@@ -79,7 +79,7 @@ async function pull(){
    $('rawl').textContent=d.balance_raw+' sat';$('utxos').textContent=d.utxo_count??0;
    $('hgt').textContent=d.height??0;$('mode').textContent=d.mining?'validator ✦':'follower (sync only)';
    $('live').style.background=d.mining?'#22c55e':'#00e5ff';}
-  const m=await(await fetch('/v1/mining')).json(), g=m.data||{};
+  const mr=await(await fetch('/v1/mining')).json(), g=mr.data||mr;
   if(g.slots_won!==undefined){$('cb').textContent=(+g.coinbase_earned_aib||0).toLocaleString();
    $('sw').textContent=g.slots_won;$('sm').textContent=g.slots_missed??0;
    $('wr').textContent=(+g.win_rate||0)+'%';$('wr-bar').style.width=Math.min(100,+g.win_rate||0)+'%';
