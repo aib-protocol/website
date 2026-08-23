@@ -3,7 +3,7 @@
 # Usage: curl -sSfL https://aib.one/install.sh | bash
 set -euo pipefail
 
-VERSION="v0.9.2-testnet"
+VERSION="v0.10.0-testnet"
 REPO="aib-protocol/aib"
 INSTALL_DIR="${AIB_HOME:-$HOME/.aib}"
 BIN_DIR="$INSTALL_DIR/bin"
@@ -57,7 +57,7 @@ ok "Checksum verified"
 
 chmod +x "$BIN.tmp"
 mv "$BIN.tmp" "$BIN"
-ok "Installed: $BIN ($("$BIN" --help >/dev/null 2>&1; echo v0.9.2-testnet))"
+ok "Installed: $BIN ($("$BIN" --help >/dev/null 2>&1; echo v0.10.0-testnet))"
 
 # ---------- config / data ----------
 mkdir -p "$INSTALL_DIR/data"
@@ -183,6 +183,20 @@ cat <<'DONE'
   Mining   : curl 127.0.0.1:8080/v1/mining
   Logs     : journalctl --user -u aib-node -f   (or ~/.aib/node.log)
   Stop     : systemctl --user stop aib-node     (or: pkill -f aib-node)
+
+  ── Start MINING (optional) ────────────────────
+  Mining is OFF by default. To mine:
+    1. Get your wallet address:
+         curl 127.0.0.1:8080/v1/wallet/info
+    2. Restart the node in validator mode:
+         pkill -f aib-node
+         setsid nohup ~/.aib/bin/aib-node \
+           -data-dir <your data dir> -api-port 8080 \
+           -p2p-port 51413 -validator \
+           >> ~/.aib/node.log 2>&1 &
+    3. Watch mining stats:
+         curl 127.0.0.1:8080/v1/mining
+    (mining rewards go to your node wallet; ~1 AIB per block)
 
   ── Your wallet ────────────────────────────────
   Node wallet : curl 127.0.0.1:8080/v1/wallet/info
