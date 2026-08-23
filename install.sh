@@ -184,4 +184,14 @@ cat <<'DONE'
   Logs     : journalctl --user -u aib-node -f   (or ~/.aib/node.log)
   Stop     : systemctl --user stop aib-node     (or: pkill -f aib-node)
 
+  ── Your wallet ────────────────────────────────
+  Node wallet : curl 127.0.0.1:8080/v1/wallet/info
+                (mining rewards go here; key file: node_key.pem in data dir)
+  Balance     : curl 127.0.0.1:8080/v1/balance/<address>
+  New wallet  : curl -s -X POST 127.0.0.1:8080/v1/wallet/create \
+                 -H 'Content-Type: application/json' \
+                 -d '{"label":"main"}'
+                (private_key shown ONCE — save it!)
+  Explorer    : https://aib.one/explorer.html
+
 DONE
