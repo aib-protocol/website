@@ -80,6 +80,8 @@ if(qs.get('node')){NODE=qs.get('node');localStorage.setItem('aib_node',NODE)}
 $('ninput').value=NODE;
 const api=p=>(NODE?NODE.replace(/\/$/,''):'')+p;
 function setNode(){NODE=$('ninput').value.trim().replace(/\/$/,'');localStorage.setItem('aib_node',NODE);pull()}
+function mcWarn(){const warn=document.createElement('div');warn.id='mcw';warn.style.cssText='margin-top:10px;padding:9px 13px;border-radius:9px;background:rgba(255,196,0,.08);border:1px solid rgba(255,196,0,.25);color:#ffd76a;font-size:11px;line-height:1.6;display:none';
+warn.innerHTML='⚠ HTTPS 页面无法读取 HTTP 节点(浏览器限制).<br>👉 <b>右键保存本页到本地</b>打开(file:// 无此限制), 输入你的节点地址即可';document.querySelector('.card#w .note').before(warn);return warn}
 function sw(x){for(const k of['w','m'])$('t-'+k).classList.toggle('on',k===x),$(k).classList.toggle('hide',k!==x)}
 $('addr').onclick=()=>{navigator.clipboard.writeText($('addr').textContent);$('tip').style.opacity=1;setTimeout(()=>$('tip').style.opacity=0,1200)};
 async function pull(){
@@ -96,7 +98,8 @@ async function pull(){
    $('lw').textContent=g.last_win_height?('block '+g.last_win_height):'—';
    const e=g.epoch||{};$('apr').textContent=e.realized_apr||'—';
    $('fb').textContent=(e.fees_aib||0)+' / '+(e.burn_aib||0)+' AIB';}
- }catch(e){$('bal').textContent='offline';$('live').style.background='#ef4444'}
+ }catch(e){$('bal').textContent='offline';$('live').style.background='#ef4444';
+  if(location.protocol==='https:'&&NODE&&NODE.startsWith('http:')){const w=mcWarn();w.style.display='block'}}
 }
 pull();setInterval(pull,5000);
 </script>
