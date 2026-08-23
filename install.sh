@@ -84,7 +84,35 @@ while ss -tlnH "( sport = :$P2P_PORT )" 2>/dev/null | grep -q .; do
   P2P_PORT=$((P2P_PORT+1))
 done
 [ "$P2P_PORT" != "51413" ] && info "Port 51413 busy — using P2P port $P2P_PORT"
-NODE_ARGS="-data-dir $INSTALL_DIR -api-port 8080 -p2p-port $P2P_PORT"
+# ---------- external-disk detection (protect the system disk) ----------
+# Blockchain + logs grow unbounded; prefer a non-root mount when available.
+DATA_DIR="$INSTALL_DIR"   # default: system disk
+EXT_CAND=$(awk '$3 ~ /^(ext[234]|xfs|btrfs|f2fs|exfat|vfat|ntfs|apfs)$/ && $2!="/" && $2!~/^\/boot/ && $2!~/^\/snap/ && $2!~/^\/proc/ && $2!~/^\/sys/ && $2!~/^\/dev/ && $2!~/^\/run/ && $2!~/^\/var\/lib\/docker/ && $2!~/^\/etc/ {print $2}' /proc/mounts | sort -u | while read -r m; do
+  free_kb=$(df -k "$m" 2>/dev/null | awk 'NR==2{print $4}')
+  dev=$(df "$m" 2>/dev/null | awk 'NR==2{print $1}')
+  root_dev=$(df / 2>/dev/null | awk 'NR==2{print $1}')
+  [ -n "$free_kb" ] && [ "$free_kb" -ge 2097152 ] && [ "$dev" != "$root_dev" ] && echo "$free_kb $m"
+done | sort -rn | head -1 | awk '{print $2}')
+
+if [ -n "$EXT_CAND" ]; then
+  EXT_DATA="$EXT_CAND/aib-node"
+  if [ -t 0 ]; then
+    echo
+    warn "External disk detected: $EXT_CAND ($(df -h "$EXT_CAND" | awk 'NR==2{print $4}') free)"
+    printf "  Store blockchain data there (protects system disk)? [Y/n] "
+    read -r ans || ans=y
+    case "$ans" in n|N*) info "Keeping data on system disk ($INSTALL_DIR)" ;;
+      *) DATA_DIR="$EXT_DATA"; ok "Data will be stored on: $DATA_DIR" ;;
+    esac
+  else
+    # Non-interactive (curl|bash): auto-pick the external disk.
+    DATA_DIR="$EXT_DATA"
+    ok "External disk detected — data goes to $DATA_DIR (protects system disk)"
+  fi
+fi
+[ -n "${AIB_DATA_DIR:-}" ] && DATA_DIR="$AIB_DATA_DIR"   # explicit override wins
+
+NODE_ARGS="-data-dir $DATA_DIR -api-port 8080 -p2p-port $P2P_PORT"
 
 # ---------- systemd --user (Linux only) ----------
 RUN_NOW=0
