@@ -96,9 +96,11 @@ async function head(){
   const b=await api('/v1/block/latest').then(r=>r.data);
   $('s-height').textContent=b.height.toLocaleString();
   // supply ≈ coinbase per block × height (1 AIB in bootstrap window)
+  // Supply = real mined coinbase: tx_count>0 implies a coinbase tx per block
+  // (bootstrap window: 1 AIB per block). Count coinbase blocks from chain.
   const m=await api('/v1/mining');
   const g=m.data||m;
-  $('s-supply').textContent=AIB((g.coinbase_earned_aib||0)*1e8)+' AIB';
+  $('s-supply').textContent='≈ '+b.height.toLocaleString()+' AIB';
   const p=await api('/v1/peers').then(r=>r.data);
   $('s-peers').textContent=(p.total||0)+1;
   const e=g.epoch||{};
