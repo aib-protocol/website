@@ -46,6 +46,10 @@ a{color:#00e5ff;text-decoration:none}
 
 <div class="card" id="w">
   <h1><span class="dot" id="live"></span>AIB WALLET · TESTNET</h1>
+  <div style="display:flex;gap:8px;margin-top:14px">
+    <input id="ninput" placeholder="your node: http://IP:8080" style="flex:1;background:rgba(255,255,255,.05);border:1px solid rgba(0,229,255,.2);border-radius:9px;padding:9px 12px;color:#e8eef7;font-size:12px;outline:none">
+    <button onclick="setNode()" style="background:linear-gradient(90deg,#00e5ff22,#e8a01322);border:1px solid rgba(0,229,255,.3);border-radius:9px;padding:9px 16px;color:#00e5ff;cursor:pointer;font-size:12px">CONNECT</button>
+  </div>
   <div class="bal"><div class="n" id="bal">—</div><div class="u">AIB</div></div>
   <div class="sub"><span>UTXOs <b id="utxos">—</b></span><span>Chain height <b id="hgt">—</b></span><span>Mode <b id="mode">—</b></span></div>
   <div class="row"><span class="k">Address</span><span class="v addr" id="addr" title="click to copy">—</span></div>
@@ -70,16 +74,22 @@ a{color:#00e5ff;text-decoration:none}
 <div id="tip">copied</div>
 <script>
 const $=i=>document.getElementById(i);
+let NODE=localStorage.getItem('aib_node')||'';
+const qs=new URLSearchParams(location.search);
+if(qs.get('node')){NODE=qs.get('node');localStorage.setItem('aib_node',NODE)}
+$('ninput').value=NODE;
+const api=p=>(NODE?NODE.replace(/\/$/,''):'')+p;
+function setNode(){NODE=$('ninput').value.trim().replace(/\/$/,'');localStorage.setItem('aib_node',NODE);pull()}
 function sw(x){for(const k of['w','m'])$('t-'+k).classList.toggle('on',k===x),$(k).classList.toggle('hide',k!==x)}
 $('addr').onclick=()=>{navigator.clipboard.writeText($('addr').textContent);$('tip').style.opacity=1;setTimeout(()=>$('tip').style.opacity=0,1200)};
 async function pull(){
  try{
-  const w=await(await fetch('/v1/wallet/info')).json(), d=w.data||{};
+  const w=await(await fetch(api('/v1/wallet/info'))).json(), d=w.data||{};
   if(d.address){$('bal').textContent=(+d.balance_aib).toLocaleString();$('addr').textContent=d.address;
    $('rawl').textContent=d.balance_raw+' sat';$('utxos').textContent=d.utxo_count??0;
    $('hgt').textContent=d.height??0;$('mode').textContent=d.mining?'validator ✦':'follower (sync only)';
    $('live').style.background=d.mining?'#22c55e':'#00e5ff';}
-  const mr=await(await fetch('/v1/mining')).json(), g=mr.data||mr;
+  const mr=await(await fetch(api('/v1/mining'))).json(), g=mr.data||mr;
   if(g.slots_won!==undefined){$('cb').textContent=(+g.coinbase_earned_aib||0).toLocaleString();
    $('sw').textContent=g.slots_won;$('sm').textContent=g.slots_missed??0;
    $('wr').textContent=(+g.win_rate||0)+'%';$('wr-bar').style.width=Math.min(100,+g.win_rate||0)+'%';
