@@ -100,7 +100,7 @@ async function head(){
   // (bootstrap window: 1 AIB per block). Count coinbase blocks from chain.
   const m=await api('/v1/mining');
   const g=m.data||m;
-  $('s-supply').textContent='≈ '+b.height.toLocaleString()+' AIB';
+  $('s-supply').textContent='≈ '+(b.height<1000? (b.height*31.415).toFixed(1) : '31415')+' AIB'+(b.height<1000?' (PoW)':' (PoS era)');
   const p=await api('/v1/peers').then(r=>r.data);
   $('s-peers').textContent=(p.total||0)+1;
   const e=g.epoch||{};
