@@ -191,7 +191,7 @@ ok "Chain height: ${H:-0} | Peers: ${P:-0} (syncing from seed)"
 if [ -r /dev/tty ] && [ -e /dev/tty ]; then
   # 1. new wallet?
   printf "\n  Create a new wallet now? [Y/n] "
-  read -r WALLET_ANS </dev/tty || WALLET_ANS="Y"
+  read -r WALLET_ANS </dev/tty 2>/dev/null || WALLET_ANS="Y"
   case "${WALLET_ANS:-Y}" in
     [Nn]*) : ;;
     *)
@@ -211,7 +211,7 @@ if [ -r /dev/tty ] && [ -e /dev/tty ]; then
 
   # 2. start CPU mining? (ALWAYS shown when TTY)
   printf "\n  Start CPU mining now (validator mode)? [Y/n] "
-  read -r MINE_ANS </dev/tty || MINE_ANS="Y"
+  read -r MINE_ANS </dev/tty 2>/dev/null || MINE_ANS="Y"
   case "${MINE_ANS:-Y}" in
     [Nn]*) info "Mining not started (node keeps syncing as follower)." ;;
     *)
