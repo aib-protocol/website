@@ -187,52 +187,12 @@ H=$(curl -s --max-time 4 http://127.0.0.1:8080/v1/block/latest 2>/dev/null | gre
 P=$(curl -s --max-time 4 http://127.0.0.1:8080/v1/peers 2>/dev/null | grep -o '"total":[0-9]*' | head -1 | cut -d: -f2)
 ok "Chain height: ${H:-0} | Peers: ${P:-0} (syncing from seed)"
 
-# ---------- interactive setup (prompt via /dev/tty so `curl | bash` works too) ----------
-if [ -r /dev/tty ] && [ -e /dev/tty ]; then
-  # 1. new wallet?
-  printf "\n  Create a new wallet now? [Y/n] "
-  read -r WALLET_ANS </dev/tty 2>/dev/null || WALLET_ANS="Y"
-  case "${WALLET_ANS:-Y}" in
-    [Nn]*) : ;;
-    *)
-      RESP=$(curl -s -X POST http://127.0.0.1:8080/v1/wallet/create -H 'Content-Type: application/json' -d '{"label":"main"}' --max-time 10 2>/dev/null || true)
-      ADDR=$(printf '%s' "$RESP" | grep -o '"address":"[a-f0-9]*"' | cut -d'"' -f4 || true)
-      PK=$(printf '%s' "$RESP" | grep -o '"private_key":"[a-f0-9]*"' | cut -d'"' -f4 || true)
-      if [ -n "$ADDR" ] && [ -n "$PK" ]; then
-        ( umask 077; printf 'address: %s\nprivate_key: %s\n' "$ADDR" "$PK" > "$HOME/.aib/wallet-main.txt" )
-        ok "Wallet created (backup saved: ~/.aib/wallet-main.txt — keep secret!)"
-        printf "    Address     : %s\n" "$ADDR"
-        printf "    Private key : %s\n" "$PK"
-      else
-        warn "wallet create failed — response: ${RESP:-<empty>}"
-      fi
-      ;;
-  esac
-
-  # 2. start CPU mining? (ALWAYS shown when TTY)
-  printf "\n  Start CPU mining now (validator mode)? [Y/n] "
-  read -r MINE_ANS </dev/tty 2>/dev/null || MINE_ANS="Y"
-  case "${MINE_ANS:-Y}" in
-    [Nn]*) info "Mining not started (node keeps syncing as follower)." ;;
-    *)
-      systemctl --user stop aib-node >/dev/null 2>&1 || true
-      pkill -f aib-node >/dev/null 2>&1 || true
-      sleep 1
-      setsid nohup "$BIN" $NODE_ARGS -validator >> "$INSTALL_DIR/node.log" 2>&1 < /dev/null &
-      sleep 4
-      if curl -s --max-time 3 http://127.0.0.1:8080/health >/dev/null 2>&1; then
-        ok "MINING STARTED (validator mode)"
-        printf "    Stats  : curl 127.0.0.1:8080/v1/mining\n"
-        printf "    Wallet : curl 127.0.0.1:8080/v1/wallet/info\n"
-      else
-        warn "node restart failed — last log lines:"
-        tail -n 8 "$INSTALL_DIR/node.log" 2>/dev/null | sed 's/^/    /'
-      fi
-      ;;
-  esac
+# ---------- interactive setup: delegate ALL logic to the Go binary ----------
+# (cross-platform, testable; prompts read /dev/tty so `curl | bash` works)
+if [ -x "$BIN" ]; then
+  "$BIN" setup -data-dir "$DATA_DIR" -api-port 8080 -p2p-port "$P2P_PORT" || true
 else
-  info "No terminal — skipping setup. To mine:"
-  info "  restart node with: ~/.aib/bin/aib-node -data-dir <dir> -validator"
+  info "binary missing — skipping interactive setup"
 fi
 
 cat <<'DONE'
