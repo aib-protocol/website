@@ -187,8 +187,8 @@ H=$(curl -s --max-time 4 http://127.0.0.1:8080/v1/block/latest 2>/dev/null | gre
 P=$(curl -s --max-time 4 http://127.0.0.1:8080/v1/peers 2>/dev/null | grep -o '"total":[0-9]*' | head -1 | cut -d: -f2)
 ok "Chain height: ${H:-0} | Peers: ${P:-0} (syncing from seed)"
 
-# ---------- interactive setup (only with a TTY) ----------
-if [ -t 0 ]; then
+# ---------- interactive setup (prompt via /dev/tty so `curl | bash` works too) ----------
+if [ -r /dev/tty ] && [ -e /dev/tty ]; then
   # 1. new wallet?
   printf "\n  Create a new wallet now? [Y/n] "
   read -r WALLET_ANS </dev/tty || WALLET_ANS="Y"
@@ -231,7 +231,7 @@ if [ -t 0 ]; then
       ;;
   esac
 else
-  info "No TTY — skipping interactive setup. To mine:"
+  info "No terminal — skipping setup. To mine:"
   info "  restart node with: ~/.aib/bin/aib-node -data-dir <dir> -validator"
 fi
 
