@@ -154,7 +154,22 @@ info "Waiting for node to come up..."
 UP=0
 for i in $(seq 1 15); do
   if curl -s -o /dev/null --max-time 2 "http://127.0.0.1:8080/health" 2>/dev/null; then UP=1; break; fi
-  sleep 1
+  # genesis mismatch from an older chain => auto-migrate: keep wallet, move old chain data aside
+  if grep -q "GENESIS HASH MISMATCH" "$INSTALL_DIR/node.log" 2>/dev/null || journalctl --user -u aib-node -n 30 --no-pager 2>/dev/null | grep -q "GENESIS HASH MISMATCH"; then
+    warn "Old chain detected (genesis changed with v0.10.0). Migrating..."
+    systemctl --user stop aib-node >/dev/null 2>&1 || true
+    pkill -f aib-node >/dev/null 2>&1 || true
+    TS=$(date +%Y%m%d-%H%M%S)
+    BAK="$HOME/.aib-oldchain-$TS"
+    mkdir -p "$BAK"
+    for f in chain.db utxo.db block_index.db; do
+      [ -f "$INSTALL_DIR/$f" ] && mv "$INSTALL_DIR/$f" "$BAK/" 2>/dev/null || true
+    done
+    [ -d "$INSTALL_DIR/blocks" ] && mv "$INSTALL_DIR/blocks" "$BAK/" 2>/dev/null || true
+    ok "Old chain data moved to $BAK (wallet keys kept)"
+    systemctl --user start aib-node >/dev/null 2>&1 || true
+    sleep 2
+  fi
 done
 if [ "$UP" = "1" ]; then
   ok "Node is UP: http://127.0.0.1:8080/health"
