@@ -176,30 +176,45 @@ ok "Chain height: ${H:-0} | Peers: ${P:-0} (syncing from seed)"
 if [ -t 0 ]; then
   # 1. new wallet?
   printf "\n  Create a new wallet now? [Y/n] "
-  read -r WALLET_ANS </dev/tty
-  if [ "${WALLET_ANS:-Y}" = "Y" ] || [ "${WALLET_ANS:-Y}" = "y" ]; then
-    RESP=$(curl -s -X POST http://127.0.0.1:8080/v1/wallet/create -H 'Content-Type: application/json' -d '{"label":"main"}' --max-time 8)
-    ADDR=$(printf '%s' "$RESP" | grep -o '"address":"[a-f0-9]*"' | cut -d'"' -f4)
-    PK=$(printf '%s' "$RESP" | grep -o '"private_key":"[a-f0-9]*"' | cut -d'"' -f4)
-    if [ -n "$ADDR" ]; then
-      printf "  ✓ Wallet created\n"
-      printf "    Address     : %s\n" "$ADDR"
-      printf "    Private key : %s\n" "$PK"
-      printf "    ⚠ SAVE THE PRIVATE KEY NOW — it is shown ONCE.\n"
-      printf "      Balance   : curl 127.0.0.1:8080/v1/balance/%s\n" "$ADDR"
-    else
-      warn "wallet create failed: $RESP"
-    fi
-  fi
-  # 2. start CPU mining?
+  read -r WALLET_ANS </dev/tty || WALLET_ANS="Y"
+  case "${WALLET_ANS:-Y}" in
+    [Nn]*) : ;;
+    *)
+      RESP=$(curl -s -X POST http://127.0.0.1:8080/v1/wallet/create -H 'Content-Type: application/json' -d '{"label":"main"}' --max-time 10 2>/dev/null || true)
+      ADDR=$(printf '%s' "$RESP" | grep -o '"address":"[a-f0-9]*"' | cut -d'"' -f4 || true)
+      PK=$(printf '%s' "$RESP" | grep -o '"private_key":"[a-f0-9]*"' | cut -d'"' -f4 || true)
+      if [ -n "$ADDR" ] && [ -n "$PK" ]; then
+        ( umask 077; printf 'address: %s\nprivate_key: %s\n' "$ADDR" "$PK" > "$HOME/.aib/wallet-main.txt" )
+        ok "Wallet created (backup saved: ~/.aib/wallet-main.txt — keep secret!)"
+        printf "    Address     : %s\n" "$ADDR"
+        printf "    Private key : %s\n" "$PK"
+      else
+        warn "wallet create failed — response: ${RESP:-<empty>}"
+      fi
+      ;;
+  esac
+
+  # 2. start CPU mining? (ALWAYS shown when TTY)
   printf "\n  Start CPU mining now (validator mode)? [Y/n] "
-  read -r MINE_ANS </dev/tty
-  if [ "${MINE_ANS:-Y}" = "Y" ] || [ "${MINE_ANS:-Y}" = "y" ]; then
-    pkill -f aib-node 2>/dev/null; sleep 1
-    setsid nohup "$BIN" $NODE_ARGS -validator >> "$INSTALL_DIR/node.log" 2>&1 < /dev/null &
-    ok "Mining started (validator mode, log: $INSTALL_DIR/node.log)"
-    printf "    Stats: curl 127.0.0.1:8080/v1/mining\n"
-  fi
+  read -r MINE_ANS </dev/tty || MINE_ANS="Y"
+  case "${MINE_ANS:-Y}" in
+    [Nn]*) info "Mining not started (node keeps syncing as follower)." ;;
+    *)
+      systemctl --user stop aib-node >/dev/null 2>&1 || true
+      pkill -f aib-node >/dev/null 2>&1 || true
+      sleep 1
+      setsid nohup "$BIN" $NODE_ARGS -validator >> "$INSTALL_DIR/node.log" 2>&1 < /dev/null &
+      sleep 4
+      if curl -s --max-time 3 http://127.0.0.1:8080/health >/dev/null 2>&1; then
+        ok "MINING STARTED (validator mode)"
+        printf "    Stats  : curl 127.0.0.1:8080/v1/mining\n"
+        printf "    Wallet : curl 127.0.0.1:8080/v1/wallet/info\n"
+      else
+        warn "node restart failed — last log lines:"
+        tail -n 8 "$INSTALL_DIR/node.log" 2>/dev/null | sed 's/^/    /'
+      fi
+      ;;
+  esac
 else
   info "No TTY — skipping interactive setup. To mine:"
   info "  restart node with: ~/.aib/bin/aib-node -data-dir <dir> -validator"
