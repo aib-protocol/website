@@ -162,54 +162,24 @@ if [ "${RUN_BG:-0}" = "1" ]; then
   ok "Node started in background (pid $BG_PID, log: $INSTALL_DIR/node.log)"
 fi
 
-# ---------- health check: wait until up, else show real error ----------
+# ---------- health check: behavior-driven self-heal ----------
+# A node that keeps failing to start (corrupt/old chain DB, genesis change)
+# shows up as: service active but /health never answers. We do NOT parse logs
+# (journald may be unreadable for the user); we watch behavior instead.
 info "Waiting for node to come up..."
 UP=0
-for i in $(seq 1 15); do
+for i in $(seq 1 20); do
   if curl -s -o /dev/null --max-time 2 "http://127.0.0.1:8080/health" 2>/dev/null; then UP=1; break; fi
-  # ANY startup failure (old genesis, corrupt/incompatible chain DB, ...) => migrate once
-  BADLOG=""
-  grep -qE "GENESIS HASH MISMATCH|Failed to start node" "$INSTALL_DIR/node.log" "$DATA_DIR/node.log" 2>/dev/null && BADLOG=1
-  journalctl --user -u aib-node -n 30 --no-pager 2>/dev/null | grep -qE "GENESIS HASH MISMATCH|Failed to start node" && BADLOG=1
-  if [ -n "$BADLOG" ] && [ "${MIGRATED:-0}" = "0" ]; then
-    export MIGRATED=1
-    warn "Old/broken chain data detected — migrating (wallet keys kept)..."
-    systemctl --user stop aib-node >/dev/null 2>&1 || true
-    pkill -f aib-node >/dev/null 2>&1 || true
-    TS=$(date +%Y%m%d-%H%M%S)
-    BAK="$HOME/.aib-oldchain-$TS"
-    mkdir -p "$BAK"
-    for f in chain.db utxo.db block_index.db; do
-      [ -f "$INSTALL_DIR/$f" ] && mv "$INSTALL_DIR/$f" "$BAK/" 2>/dev/null || true
-      [ -f "$DATA_DIR/$f" ] && mv "$DATA_DIR/$f" "$BAK/" 2>/dev/null || true
-    done
-    [ -d "$INSTALL_DIR/blocks" ] && mv "$INSTALL_DIR/blocks" "$BAK/" 2>/dev/null || true
-    ok "Old chain data moved to $BAK (wallet keys kept)"
-    systemctl --user reset-failed aib-node >/dev/null 2>&1 || true
-    systemctl --user start aib-node >/dev/null 2>&1 || true
-    sleep 2
-  fi
+  sleep 1
 done
-if [ "$UP" = "1" ]; then
-  ok "Node is UP: http://127.0.0.1:8080/health"
-else
-  warn "Node did NOT come up in 15s. Last log lines:"
-  tail -n 15 "$INSTALL_DIR/node.log" 2>/dev/null | sed 's/^/    /'
-  journalctl --user -u aib-node -n 15 --no-pager 2>/dev/null | tail -8 | sed 's/^/    /'
-  die "Install incomplete — send the log above to the team"
-fi
 
-# ---------- chain sync watchdog: detect broken/stale chains and self-heal ----------
-height() { curl -s --max-time 4 "http://127.0.0.1:8080/v1/block/latest" 2>/dev/null | grep -o '"height":[0-9]*' | head -1 | cut -d: -f2; }
-
-heal_chain() {  # archive chain DBs, keep wallet keys, restart
-  warn "Chain data is stale/broken — archiving and resyncing (wallet keys kept)"
+heal_chain() {  # archive chain DBs (keep wallet keys), restart
+  warn "Node failing to start — archiving broken/old chain data (wallet keys kept)"
   systemctl --user stop aib-node >/dev/null 2>&1 || true
   pkill -f aib-node >/dev/null 2>&1 || true
   sleep 1
-  local TS BAK
+  local TS BAK f d
   TS=$(date +%Y%m%d-%H%M%S); BAK="$HOME/.aib-oldchain-$TS"; mkdir -p "$BAK"
-  local f d
   for f in chain.db utxo.db block_index.db node.log; do
     for d in "$INSTALL_DIR" "$DATA_DIR"; do
       [ -f "$d/$f" ] && mv "$d/$f" "$BAK/" 2>/dev/null || true
@@ -217,11 +187,37 @@ heal_chain() {  # archive chain DBs, keep wallet keys, restart
   done
   [ -d "$DATA_DIR/blocks" ] && mv "$DATA_DIR/blocks" "$BAK/" 2>/dev/null || true
   ok "Old chain data archived to $BAK"
+  systemctl --user reset-failed aib-node >/dev/null 2>&1 || true
   systemctl --user start aib-node >/dev/null 2>&1 || {
     setsid nohup "$BIN" $NODE_ARGS >> "$INSTALL_DIR/node.log" 2>&1 < /dev/null &
   }
-  sleep 3
+  for i in $(seq 1 25); do
+    if curl -s -o /dev/null --max-time 2 "http://127.0.0.1:8080/health" 2>/dev/null; then return 0; fi
+    sleep 1
+  done
+  return 1
 }
+
+if [ "$UP" = "0" ]; then
+  warn "Node did not come up in 20s — attempting automatic repair..."
+  if heal_chain; then
+    ok "Repair successful — node is UP with a fresh chain (resyncing)"
+    UP=1
+  fi
+fi
+
+if [ "$UP" = "1" ]; then
+  ok "Node is UP: http://127.0.0.1:8080/health"
+else
+  warn "Node still failing after repair. Last log lines:"
+  tail -n 15 "$INSTALL_DIR/node.log" 2>/dev/null | sed 's/^/    /'
+  warn "Try manually:  systemctl --user status aib-node"
+  warn "If stuck, archive data:  mv ~/.aib ~/.aib-broken && rerun this installer"
+  die "Install incomplete — send the log above to the team"
+fi
+
+# ---------- chain sync watchdog: detect broken/stale chains and self-heal ----------
+height() { curl -s --max-time 4 "http://127.0.0.1:8080/v1/block/latest" 2>/dev/null | grep -o '"height":[0-9]*' | head -1 | cut -d: -f2; }
 
 info "Node is up. Checking chain sync against the network..."
 sleep 3
@@ -237,8 +233,7 @@ if [ -n "${NET_H:-}" ] && [ "$NET_H" -gt 0 ] 2>/dev/null; then
     H2=$(height); H2=${H2:-0}
     if [ "$H2" -le "$H1" ]; then
       warn "Height stuck at $H1 (no progress in 60s) — chain data is stale"
-      heal_chain
-      info "Resync started — full history will download in the background"
+      if heal_chain; then ok "Resync started — full history downloads in background"; fi
     else
       ok "Sync in progress ($H1 → $H2), continuing in background"
     fi
