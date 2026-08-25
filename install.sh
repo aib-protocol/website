@@ -114,6 +114,19 @@ fi
 
 NODE_ARGS="-data-dir $DATA_DIR -api-port 8080 -p2p-port $P2P_PORT"
 
+# ---------- kill any stale node from a previous install ----------
+# A stale process may still serve an OLD chain on port 8080 and fool the
+# health check below. Stop it so the freshly installed binary takes over.
+if pgrep -f aib-node >/dev/null 2>&1; then
+  info "Stopping existing aib-node process(es)..."
+  systemctl --user stop aib-node >/dev/null 2>&1 || true
+  pkill -f aib-node >/dev/null 2>&1 || true
+  sleep 2
+  pgrep -f aib-node >/dev/null 2>&1 && { pkill -9 -f aib-node >/dev/null 2>&1 || true; sleep 1; }
+  systemctl --user reset-failed aib-node >/dev/null 2>&1 || true
+  ok "Old node stopped"
+fi
+
 # ---------- systemd --user (Linux only) ----------
 RUN_NOW=0
 if [ "$OS" = "linux" ] && command -v systemctl >/dev/null 2>&1; then
@@ -154,9 +167,13 @@ info "Waiting for node to come up..."
 UP=0
 for i in $(seq 1 15); do
   if curl -s -o /dev/null --max-time 2 "http://127.0.0.1:8080/health" 2>/dev/null; then UP=1; break; fi
-  # genesis mismatch from an older chain => auto-migrate: keep wallet, move old chain data aside
-  if grep -q "GENESIS HASH MISMATCH" "$INSTALL_DIR/node.log" 2>/dev/null || journalctl --user -u aib-node -n 30 --no-pager 2>/dev/null | grep -q "GENESIS HASH MISMATCH"; then
-    warn "Old chain detected (genesis changed with v0.10.0). Migrating..."
+  # ANY startup failure (old genesis, corrupt/incompatible chain DB, ...) => migrate once
+  BADLOG=""
+  grep -qE "GENESIS HASH MISMATCH|Failed to start node" "$INSTALL_DIR/node.log" "$DATA_DIR/node.log" 2>/dev/null && BADLOG=1
+  journalctl --user -u aib-node -n 30 --no-pager 2>/dev/null | grep -qE "GENESIS HASH MISMATCH|Failed to start node" && BADLOG=1
+  if [ -n "$BADLOG" ] && [ "${MIGRATED:-0}" = "0" ]; then
+    export MIGRATED=1
+    warn "Old/broken chain data detected — migrating (wallet keys kept)..."
     systemctl --user stop aib-node >/dev/null 2>&1 || true
     pkill -f aib-node >/dev/null 2>&1 || true
     TS=$(date +%Y%m%d-%H%M%S)
@@ -164,9 +181,11 @@ for i in $(seq 1 15); do
     mkdir -p "$BAK"
     for f in chain.db utxo.db block_index.db; do
       [ -f "$INSTALL_DIR/$f" ] && mv "$INSTALL_DIR/$f" "$BAK/" 2>/dev/null || true
+      [ -f "$DATA_DIR/$f" ] && mv "$DATA_DIR/$f" "$BAK/" 2>/dev/null || true
     done
     [ -d "$INSTALL_DIR/blocks" ] && mv "$INSTALL_DIR/blocks" "$BAK/" 2>/dev/null || true
     ok "Old chain data moved to $BAK (wallet keys kept)"
+    systemctl --user reset-failed aib-node >/dev/null 2>&1 || true
     systemctl --user start aib-node >/dev/null 2>&1 || true
     sleep 2
   fi
@@ -180,12 +199,51 @@ else
   die "Install incomplete — send the log above to the team"
 fi
 
-# ---------- live chain status ----------
-info "Node is up. Checking chain sync..."
+# ---------- chain sync watchdog: detect broken/stale chains and self-heal ----------
+height() { curl -s --max-time 4 "http://127.0.0.1:8080/v1/block/latest" 2>/dev/null | grep -o '"height":[0-9]*' | head -1 | cut -d: -f2; }
+
+heal_chain() {  # archive chain DBs, keep wallet keys, restart
+  warn "Chain data is stale/broken — archiving and resyncing (wallet keys kept)"
+  systemctl --user stop aib-node >/dev/null 2>&1 || true
+  pkill -f aib-node >/dev/null 2>&1 || true
+  sleep 1
+  local TS BAK
+  TS=$(date +%Y%m%d-%H%M%S); BAK="$HOME/.aib-oldchain-$TS"; mkdir -p "$BAK"
+  local f d
+  for f in chain.db utxo.db block_index.db node.log; do
+    for d in "$INSTALL_DIR" "$DATA_DIR"; do
+      [ -f "$d/$f" ] && mv "$d/$f" "$BAK/" 2>/dev/null || true
+    done
+  done
+  [ -d "$DATA_DIR/blocks" ] && mv "$DATA_DIR/blocks" "$BAK/" 2>/dev/null || true
+  ok "Old chain data archived to $BAK"
+  systemctl --user start aib-node >/dev/null 2>&1 || {
+    setsid nohup "$BIN" $NODE_ARGS >> "$INSTALL_DIR/node.log" 2>&1 < /dev/null &
+  }
+  sleep 3
+}
+
+info "Node is up. Checking chain sync against the network..."
 sleep 3
-H=$(curl -s --max-time 4 http://127.0.0.1:8080/v1/block/latest 2>/dev/null | grep -o '"height":[0-9]*' | head -1 | cut -d: -f2)
+NET_H=$(curl -s --max-time 6 https://aib.one/v1/block/latest 2>/dev/null | grep -o '"height":[0-9]*' | head -1 | cut -d: -f2)
+H1=$(height); H1=${H1:-0}
 P=$(curl -s --max-time 4 http://127.0.0.1:8080/v1/peers 2>/dev/null | grep -o '"total":[0-9]*' | head -1 | cut -d: -f2)
-ok "Chain height: ${H:-0} | Peers: ${P:-0} (syncing from seed)"
+ok "Local height: $H1 | Network: ${NET_H:-?} | Peers: ${P:-0}"
+
+if [ -n "${NET_H:-}" ] && [ "$NET_H" -gt 0 ] 2>/dev/null; then
+  if [ "$H1" -lt $((NET_H > 100 ? NET_H - 100 : 0)) ] 2>/dev/null; then
+    info "Far behind network ($H1 vs $NET_H) — watching sync for 60s..."
+    sleep 60
+    H2=$(height); H2=${H2:-0}
+    if [ "$H2" -le "$H1" ]; then
+      warn "Height stuck at $H1 (no progress in 60s) — chain data is stale"
+      heal_chain
+      info "Resync started — full history will download in the background"
+    else
+      ok "Sync in progress ($H1 → $H2), continuing in background"
+    fi
+  fi
+fi
 
 # ---------- interactive setup: delegate ALL logic to the Go binary ----------
 # (cross-platform, testable; prompts read /dev/tty so `curl | bash` works)
