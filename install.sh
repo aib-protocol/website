@@ -3,7 +3,7 @@
 # Usage: curl -sSfL https://aib.one/install.sh | bash
 set -euo pipefail
 
-VERSION="v0.11.10-testnet"
+VERSION="v0.11.11-testnet"
 REPO="aib-protocol/aib"
 INSTALL_DIR="${AIB_HOME:-$HOME/.aib}"
 BIN_DIR="$INSTALL_DIR/bin"
@@ -57,7 +57,7 @@ ok "Checksum verified"
 
 chmod +x "$BIN.tmp"
 mv "$BIN.tmp" "$BIN"
-ok "Installed: $BIN ($("$BIN" --help >/dev/null 2>&1; echo v0.11.10-testnet))"
+ok "Installed: $BIN ($("$BIN" --help >/dev/null 2>&1; echo v0.11.11-testnet))"
 
 # ---------- config / data ----------
 mkdir -p "$INSTALL_DIR/data"
