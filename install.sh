@@ -3,11 +3,11 @@
 # Usage: curl -sSfL https://aib.one/install.sh | bash
 set -euo pipefail
 
-VERSION="v0.11.25-testnet"
+VERSION="v0.11.26-testnet"
 REPO="aib-protocol/aib"
 # Pinned artifact hashes (multi-source integrity anchor).
 # Every source must match the pinned hash or the installer refuses to run.
-PINNED_SHA256_AMD64="7986e203f2faa2a416fd408728ad4e31c66223ecd3307aaa430f9f0d1ba64318"
+PINNED_SHA256_AMD64="832a5af32dbc3bc01cf68610da10339647ae89b51faf80d91788279b01ac215d"
 PINNED_SHA256_ARM64="__ARM64__"
 INSTALL_DIR="${AIB_HOME:-$HOME/.aib}"
 BIN_DIR="$INSTALL_DIR/bin"
@@ -19,6 +19,60 @@ info()  { printf '\033[1;34m[AIB]\033[0m %s\n' "$*"; }
 ok()    { printf '\033[1;32m  ✓\033[0m %s\n' "$*"; }
 warn()  { printf '\033[1;33m  !\033[0m %s\n' "$*"; }
 die()   { printf '\033[1;31m[AIB] ERROR:\033[0m %s\n' "$*" >&2; exit 1; }
+
+# ---------- verify mode: cross-check hashes against on-chain anchors ----------
+# bash install.sh --verify
+# Fetches /release.json (served from each node's P2P port, backed by the
+# on-chain release anchor) from every known node, takes the MAJORITY
+# record, and compares BOTH hashes: the running script and the binary.
+VERIFY_NODES=(
+  "http://212.56.43.128:51413"
+  "http://212.56.43.128:51415"
+  "http://154.53.40.40:51414"
+)
+if [ "${1:-}" = "--verify" ]; then
+  SELF="$(sha256sum "$0" 2>/dev/null | awk '{print $1}')"
+  info "self (install.sh) sha256 = $SELF"
+  declare -A VOTES
+  ANSWERED=0
+  for N in "${VERIFY_NODES[@]}"; do
+    J="$(curl -s --max-time 8 "$N/release.json" 2>/dev/null)" || continue
+    R_NAME="$(printf '%s' "$J" | grep -o '"name":"[^"]*"' | cut -d'"' -f4)"
+    R_BIN="$(printf '%s' "$J" | grep -o '"sha256":"[^"]*"' | cut -d'"' -f4)"
+    R_INS="$(printf '%s' "$J" | grep -o '"installer_sha256":"[^"]*"' | cut -d'"' -f4)"
+    [ -n "$R_NAME" ] || continue
+    ANSWERED=$((ANSWERED+1))
+    KEY="$R_NAME|$R_BIN|$R_INS"
+    VOTES["$KEY"]=$(( ${VOTES["$KEY"]:-0} + 1 ))
+    info "$N -> $R_NAME bin=${R_BIN:0:12}... ins=${R_INS:0:12}..."
+  done
+  [ "$ANSWERED" -ge 2 ] || die "fewer than 2 nodes answered /release.json — cannot establish majority"
+  BEST=""; BEST_N=0
+  for K in "${!VOTES[@]}"; do
+    if [ "${VOTES[$K]}" -gt "$BEST_N" ]; then BEST_N="${VOTES[$K]}"; BEST="$K"; fi
+  done
+  [ "$BEST_N" -ge 2 ] || die "no majority among node answers (split answers = possible attack)"
+  A_NAME="${BEST%%|*}"; REST="${BEST#*|}"
+  A_BIN="${REST%%|*}"; A_INS="${REST#*|}"
+  ok "Majority ($BEST_N/$ANSWERED): on-chain anchor for $A_NAME"
+  PASS=1
+  if [ -n "$A_INS" ] && [ "$A_INS" != "$SELF" ]; then
+    warn "SCRIPT HASH MISMATCH: anchor=$A_INS self=$SELF"; PASS=0
+  fi
+  if [ -x "$BIN" ]; then
+    LOCAL_BIN="$(sha256sum "$BIN" | awk '{print $1}')"
+    if [ "$LOCAL_BIN" != "$A_BIN" ]; then
+      warn "LOCAL BINARY MISMATCH: anchor=$A_BIN local=$LOCAL_BIN"; PASS=0
+    else
+      ok "local binary matches on-chain anchor"
+    fi
+  fi
+  if [ "$A_NAME" != "$VERSION" ]; then
+    warn "this script targets $VERSION but chain anchors $A_NAME (script may be stale, not malicious)"
+  fi
+  [ "$PASS" = "1" ] && ok "VERIFY PASS — script + binary match the PoS-chain anchored release" || die "VERIFY FAIL"
+  exit 0
+fi
 
 # ---------- detect ----------
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
@@ -82,7 +136,7 @@ done
 
 chmod +x "$BIN.tmp"
 mv "$BIN.tmp" "$BIN"
-ok "Installed: $BIN ($("$BIN" --help >/dev/null 2>&1; echo v0.11.25-testnet))"
+ok "Installed: $BIN ($("$BIN" --help >/dev/null 2>&1; echo v0.11.26-testnet))"
 
 # ---------- config / data ----------
 mkdir -p "$INSTALL_DIR/data"
