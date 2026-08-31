@@ -3,8 +3,12 @@
 # Usage: curl -sSfL https://aib.one/install.sh | bash
 set -euo pipefail
 
-VERSION="v0.11.23-testnet"
+VERSION="v0.11.24-testnet"
 REPO="aib-protocol/aib"
+# Pinned artifact hashes (multi-source integrity anchor).
+# Every source must match the pinned hash or the installer refuses to run.
+PINNED_SHA256_AMD64="b796fe208825f8e28215799372c121716de639466c2a4a3d6bafbba334ac91cd"
+PINNED_SHA256_ARM64="__ARM64__"
 INSTALL_DIR="${AIB_HOME:-$HOME/.aib}"
 BIN_DIR="$INSTALL_DIR/bin"
 BIN="$BIN_DIR/aib-node"
@@ -37,27 +41,48 @@ if [ "$(id -u)" = "0" ]; then
   warn "Running as root — AIB does not need root. Installing for root user anyway."
 fi
 
-# ---------- download ----------
-DL="https://github.com/${REPO}/releases/download/${VERSION}"
-mkdir -p "$BIN_DIR"
-info "Downloading ${ASSET} (${VERSION})..."
-if command -v curl >/dev/null 2>&1; then
-  curl -sSfL "$DL/$ASSET" -o "$BIN.tmp" || die "download failed"
-else
-  wget -q "$DL/$ASSET" -O "$BIN.tmp" || die "download failed (need curl or wget)"
-fi
+# ---------- download (multi-source, censorship resistant) ----------
+# Order: GitHub -> aib.one mirror -> community P2P nodes.
+# Every source serves the SAME file; the pinned hash above is the only
+# trust anchor - a malicious mirror cannot make us execute bad code.
+SOURCES=(
+  "https://github.com/${REPO}/releases/download/${VERSION}"
+  "https://aib.one/releases/${VERSION}"
+  "http://154.53.40.40:51414/${VERSION}"
+  "http://216.180.75.219:51413/${VERSION}"
+  "http://144.91.108.90:51413/${VERSION}"
+)
+PINNED=""
+case "$ARCH" in
+  amd64) PINNED="$PINNED_SHA256_AMD64" ;;
+  arm64) PINNED="$PINNED_SHA256_ARM64" ;;
+esac
+case "$PINNED" in ""|__*) die "pinned hash missing for $ARCH" ;; esac
 
-# ---------- verify ----------
-info "Verifying sha256..."
-EXPECT="$(curl -sSfL "$DL/SHA256SUMS" | grep " ${ASSET}\$" | awk '{print $1}')"
-[ -n "$EXPECT" ] || die "checksum entry missing for $ASSET"
-GOT="$(sha256sum "$BIN.tmp" 2>/dev/null | awk '{print $1}' || shasum -a 256 "$BIN.tmp" | awk '{print $1}')"
-[ "$GOT" = "$EXPECT" ] || die "sha256 mismatch! expected $EXPECT got $GOT"
-ok "Checksum verified"
+mkdir -p "$BIN_DIR"
+GOT=""
+for SRC in "${SOURCES[@]}"; do
+  info "Trying ${SRC} ..."
+  rm -f "$BIN.tmp"
+  if command -v curl >/dev/null 2>&1; then
+    curl -sSfL --max-time 60 "${SRC}/${ASSET}" -o "$BIN.tmp" 2>/dev/null || continue
+  else
+    wget -q --timeout=60 "${SRC}/${ASSET}" -O "$BIN.tmp" 2>/dev/null || continue
+  fi
+  [ -s "$BIN.tmp" ] || continue
+  GOT="$(sha256sum "$BIN.tmp" 2>/dev/null | awk '{print $1}' || shasum -a 256 "$BIN.tmp" | awk '{print $1}')"
+  if [ "$GOT" = "$PINNED" ]; then
+    ok "Downloaded + pinned sha256 verified from ${SRC}"
+    break
+  fi
+  warn "Hash mismatch from ${SRC} - trying next source"
+  GOT=""
+done
+[ -n "$GOT" ] || die "all download sources failed or returned bad hashes"
 
 chmod +x "$BIN.tmp"
 mv "$BIN.tmp" "$BIN"
-ok "Installed: $BIN ($("$BIN" --help >/dev/null 2>&1; echo v0.11.23-testnet))"
+ok "Installed: $BIN ($("$BIN" --help >/dev/null 2>&1; echo v0.11.24-testnet))"
 
 # ---------- config / data ----------
 mkdir -p "$INSTALL_DIR/data"
