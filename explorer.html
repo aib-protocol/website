@@ -37,6 +37,8 @@ tr:hover td{background:rgba(0,229,255,.03);cursor:pointer}
 .dim{color:#7a8aa0}
 .gd{color:#ffd76a}
 .tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10.5px;background:rgba(34,197,94,.12);color:#22c55e}
+.tagv{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10.5px;background:rgba(0,229,255,.12);color:#00e5ff}
+.tags{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10.5px;background:rgba(122,138,160,.12);color:#7a8aa0}
 #detail{display:none}
 #detail .panel{border-color:rgba(0,229,255,.25)}
 .back{color:#00e5ff;cursor:pointer;font-size:12px;padding:12px 18px;display:inline-block}
@@ -81,6 +83,12 @@ footer{text-align:center;color:#5a6a80;font-size:11px;padding:20px}
   <h2><span>TOP MINERS (by slots won)</span></h2>
   <table><thead><tr><th>ADDRESS</th><th>SLOTS WON</th><th>MINED AIB</th><th>BALANCE</th></tr></thead>
   <tbody id="miners"><tr><td colspan="4" class="dim" style="text-align:center;padding:20px">loading…</td></tr></tbody></table>
+</div>
+
+<div class="panel">
+  <h2><span>NETWORK PEERS</span><span class="live">● LIVE</span></h2>
+  <table><thead><tr><th>IP ADDRESS</th><th>NODE</th><th>ROLE</th><th>STAKE ADDRESS</th><th>HEIGHT</th><th>LAST SEEN</th></tr></thead>
+  <tbody id="peers"><tr><td colspan="6" class="dim" style="text-align:center;padding:20px">loading…</td></tr></tbody></table>
 </div>
 
 <footer>Real data from the AIB seed node · synced via P2P · <a href="install.sh" style="color:#00e5ff">run your own node</a></footer>
@@ -166,7 +174,22 @@ function search(){
   else alert('Enter a block height (number) or 64-char hex address');
 }
 function goLatest(){hideDetail();window.scrollTo(0,0);return false}
-head();blocks();miners();setInterval(()=>{head();blocks()},5000);
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+async function peers(){
+ try{
+  const p=await api('/v1/peers').then(r=>r.data);
+  const rows=(p.peers||[]).map(x=>{
+    const ip=(x.address||'').split(':')[0];
+    const isV=x.validator;
+    const role=isV?'<span class="tagv">⚡ POS VALIDATOR</span>':'<span class="tags">SYNC</span>';
+    const sa=x.stake_addr?`<span class="mono">${esc(x.stake_addr.slice(0,16))}…</span>`:'<span class="dim">—</span>';
+    const ls=x.last_seen?new Date(x.last_seen).toLocaleTimeString():'—';
+    return `<tr onclick="showAddr('${esc(x.stake_addr||'')}')" ${x.stake_addr?'style="cursor:pointer"':''}><td class="mono">${esc(ip)}</td><td class="dim">${esc(x.nickname||x.id)}</td><td>${role}</td><td>${sa}</td><td class="dim">—</td><td class="dim">${ls}</td></tr>`;
+  });
+  $('peers').innerHTML=rows.length?rows.join(''):'<tr><td colspan="6" class="dim" style="text-align:center;padding:16px">no peers</td></tr>';
+ }catch(e){}
+}
+head();blocks();miners();peers();setInterval(()=>{head();blocks();peers()},5000);
 </script>
 </body>
 </html>
