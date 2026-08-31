@@ -178,7 +178,8 @@ function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&l
 async function peers(){
  try{
   const p=await api('/v1/peers').then(r=>r.data);
-  const rows=(p.peers||[]).map(x=>{
+  const sorted=(p.peers||[]).slice().sort((a,b)=>(a.address||'').localeCompare(b.address||''));
+  const rows=sorted.map(x=>{
     const ip=(x.address||'').split(':')[0];
     const isV=x.validator;
     const role=isV?'<span class="tagv">⚡ POS VALIDATOR</span>':'<span class="tags">SYNC</span>';
