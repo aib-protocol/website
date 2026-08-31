@@ -3,11 +3,11 @@
 # Usage: curl -sSfL https://aib.one/install.sh | bash
 set -euo pipefail
 
-VERSION="v0.11.24-testnet"
+VERSION="v0.11.25-testnet"
 REPO="aib-protocol/aib"
 # Pinned artifact hashes (multi-source integrity anchor).
 # Every source must match the pinned hash or the installer refuses to run.
-PINNED_SHA256_AMD64="b796fe208825f8e28215799372c121716de639466c2a4a3d6bafbba334ac91cd"
+PINNED_SHA256_AMD64="7986e203f2faa2a416fd408728ad4e31c66223ecd3307aaa430f9f0d1ba64318"
 PINNED_SHA256_ARM64="__ARM64__"
 INSTALL_DIR="${AIB_HOME:-$HOME/.aib}"
 BIN_DIR="$INSTALL_DIR/bin"
@@ -82,7 +82,7 @@ done
 
 chmod +x "$BIN.tmp"
 mv "$BIN.tmp" "$BIN"
-ok "Installed: $BIN ($("$BIN" --help >/dev/null 2>&1; echo v0.11.24-testnet))"
+ok "Installed: $BIN ($("$BIN" --help >/dev/null 2>&1; echo v0.11.25-testnet))"
 
 # ---------- config / data ----------
 mkdir -p "$INSTALL_DIR/data"
