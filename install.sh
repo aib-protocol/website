@@ -26,6 +26,7 @@ die()   { printf '\033[1;31m[AIB] ERROR:\033[0m %s\n' "$*" >&2; exit 1; }
 # on-chain release anchor) from every known node, takes the MAJORITY
 # record, and compares BOTH hashes: the running script and the binary.
 VERIFY_NODES=(
+  "http://182.61.43.222:51413"
   "http://212.56.43.128:51413"
   "http://212.56.43.128:51415"
   "http://154.53.40.40:51414"
@@ -102,6 +103,7 @@ fi
 SOURCES=(
   "https://github.com/${REPO}/releases/download/${VERSION}"
   "https://aib.one/releases/${VERSION}"
+  "http://182.61.43.222:51413/${VERSION}"
   "http://154.53.40.40:51414/${VERSION}"
   "http://216.180.75.219:51413/${VERSION}"
   "http://144.91.108.90:51413/${VERSION}"
@@ -228,6 +230,15 @@ UNIT
     info "systemd --user unavailable — starting in background automatically"
     RUN_BG=1
   }
+  # Without linger, the user manager (and the node with it) dies when the
+  # user logs out and never starts at boot. Linger keeps it alive forever.
+  if loginctl enable-linger "$USER" 2>/dev/null; then
+    ok "Linger enabled — service survives logout and starts at boot"
+  elif [ "$(id -u)" = "0" ] && loginctl enable-linger root 2>/dev/null; then
+    ok "Linger enabled for root"
+  else
+    warn "Could not enable linger — node may stop when you log out"
+  fi
 else
   info "No systemd (or macOS) — starting in background automatically"
   RUN_BG=1
