@@ -192,7 +192,7 @@ async function peers(){
     const ipq=ip.replace(/\./g,'-');
     rows.push(`<tr onclick="togglePeer('pd-${i}')" style="cursor:pointer"><td class="mono">${esc(ip)}</td><td class="dim">${esc(x.nickname||x.id)}</td><td>${role}</td><td>${sa}</td><td>${ht}</td><td class="dim">${ls}</td></tr>`);
     rows.push(`<tr id="pd-${i}" class="peerdetail" style="display:none"><td colspan="6" style="padding:0"><div style="padding:12px 18px;background:rgba(0,229,255,.04);border-top:1px solid rgba(255,255,255,.05);font-size:12px;line-height:1.9">
-      <div><span class="dim">NODE ID:</span> <span class="mono">${esc(x.id||'—')}</span></div>
+      <div><span class="dim">NODE ID:</span> <span class="mono">${esc(x.id||'—')}</span>${x.user_agent?` <span class="tagv" style="margin-left:8px">${esc(x.user_agent)}</span>`:''}</div>
       <div><span class="dim">ENDPOINT:</span> <span class="mono">${esc(x.address||'—')}</span></div>
       <div><span class="dim">STAKE ADDRESS:</span> ${x.stake_addr?`<span class="mono" style="cursor:pointer" onclick="event.stopPropagation();showAddr('${esc(x.stake_addr)}')">${esc(x.stake_addr)}</span>`:'<span class="dim">no stake — sync-only node</span>'}</div>
       <div><span class="dim">CHAIN HEIGHT:</span> <span class="gd">${x.height?x.height.toLocaleString():'—'}</span> <span class="dim">(click row again to collapse)</span></div>
