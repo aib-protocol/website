@@ -185,6 +185,35 @@ async function latestUA(){
   try{const r=await api('/v1/release/latest');const d=r&&r.data;if(d&&d.name)LATEST_UA='aib-node/'+d.name.replace(/-testnet$/,'');}catch(e){}
   return LATEST_UA;
 }
+// ---- GeoIP (ipwho.is, HTTPS, free, no key) with permanent localStorage cache ----
+const GEO_KEY='aib_geo_v1';
+let geoDB=(()=>{try{return JSON.parse(localStorage.getItem(GEO_KEY)||'{}')}catch(e){return{}}})();
+const geoInflight={};
+function ccFlag(cc){if(!cc||cc.length!==2)return '';return String.fromCodePoint(...[...cc.toUpperCase()].map(c=>127397+c.charCodeAt(0)));}
+function saveGeo(){try{localStorage.setItem(GEO_KEY,JSON.stringify(geoDB))}catch(e){}}
+function getGeo(ip){
+ if(!ip||geoDB[ip]||geoInflight[ip])return Promise.resolve(geoDB[ip]);
+ geoInflight[ip]=fetch('https://ipwho.is/'+ip).then(r=>r.json()).then(g=>{
+  delete geoInflight[ip];
+  if(g&&g.success!==false){
+   geoDB[ip]={cc:g.country_code||'',country:g.country||'',city:g.city||'',region:g.region||'',
+     isp:(g.connection&&g.connection.isp)||'',org:(g.connection&&g.connection.org)||'',
+     asn:(g.connection&&g.connection.asn)||'',domain:(g.connection&&g.connection.domain)||''};
+  }else{geoDB[ip]={cc:'',fail:1}}
+  saveGeo();return geoDB[ip];
+ }).catch(()=>{delete geoInflight[ip];return null});
+ return geoInflight[ip];
+}
+function fillGeo(i,ip,detail){
+ getGeo(ip).then(g=>{
+  if(!g)return;
+  const el=$(detail?'geod-'+i:'geo-'+i);if(!el)return;
+  if(detail){el.innerHTML=g.cc?`<span class="mono">${ccFlag(g.cc)} ${esc(g.city?g.city+', ':'')}${esc(g.country)}</span>${g.cc?' <span class="dim">('+esc(g.cc)+'+)</span>':''}`:'<span class="dim">lookup unavailable</span>';}
+  else{el.textContent=g.cc?(g.city?g.city:g.country):'';}
+  const d=$('geodd-'+i);
+  if(d&&g.cc)d.innerHTML=`<div><span class="dim">NETWORK:</span> <span class="mono">${esc([g.isp||g.org,g.asn?('AS'+g.asn):'',g.domain].filter(Boolean).join(' · '))||'—'}</span></div>`;
+ });
+}
 async function peers(){
  try{
   const latest=await latestUA();
@@ -201,10 +230,12 @@ async function peers(){
     const port=(x.address||'').split(':')[1]||'';
     const ipq=ip.replace(/\./g,'-');
     const ubadge=x.user_agent&&latest&&vlt(x.user_agent,latest)?' <span class="tago" style="margin-left:6px">⚠ OUTDATED</span>':(x.user_agent?'':' <span class="tago" style="margin-left:6px">⚠ OLD BUILD</span>');
-    rows.push(`<tr onclick="togglePeer('pd-${i}')" style="cursor:pointer"><td class="mono">${esc(ip)}${ubadge}</td><td class="dim">${esc(x.nickname||x.id)}</td><td>${role}</td><td>${sa}</td><td>${ht}</td><td class="dim">${ls}</td></tr>`);
+    rows.push(`<tr onclick="togglePeer('pd-${i}')" style="cursor:pointer"><td class="mono">${esc(ip)}${ubadge}<div class="dim" id="geo-${i}" style="font-size:11px;margin-top:1px">locating…</div></td><td class="dim">${esc(x.nickname||x.id)}</td><td>${role}</td><td>${sa}</td><td>${ht}</td><td class="dim">${ls}</td></tr>`);
     rows.push(`<tr id="pd-${i}" class="peerdetail" style="display:none"><td colspan="6" style="padding:0"><div style="padding:12px 18px;background:rgba(0,229,255,.04);border-top:1px solid rgba(255,255,255,.05);font-size:12px;line-height:1.9">
       <div><span class="dim">NODE ID:</span> <span class="mono">${esc(x.id||'—')}</span>${x.user_agent?` <span class="tagv" style="margin-left:8px">${esc(x.user_agent)}</span>`:''}</div>
       <div><span class="dim">ENDPOINT:</span> <span class="mono">${esc(x.address||'—')}</span></div>
+      <div><span class="dim">LOCATION:</span> <span id="geod-${i}"><span class="dim">looking up…</span></span></div>
+      <div id="geodd-${i}"></div>
       <div><span class="dim">STAKE ADDRESS:</span> ${x.stake_addr?`<span class="mono" style="cursor:pointer" onclick="event.stopPropagation();showAddr('${esc(x.stake_addr)}')">${esc(x.stake_addr)}</span>`:'<span class="dim">no stake — sync-only node</span>'}</div>
       <div><span class="dim">CHAIN HEIGHT:</span> <span class="gd">${x.height?x.height.toLocaleString():'—'}</span></div>
       ${x.user_agent&&latest&&vlt(x.user_agent,latest)?`<div style="margin-top:4px"><span class="tago">⚠ OUTDATED</span> <span class="dim">client v${vnum(x.user_agent).join('.')} is older than on-chain release ${esc((latest||'').replace('aib-node/',''))} — operator should upgrade: curl -sSfL http://${esc(ip)}:51413/install.sh is served by any node</span></div>`:(x.user_agent?'':'<div style="margin-top:4px"><span class="tago">⚠ OLD BUILD</span> <span class="dim">no user agent — predates version reporting</span></div>')}
@@ -212,6 +243,7 @@ async function peers(){
       ${x.stake_addr?'':''}</div></td></tr>`);
   });
   $('peers').innerHTML=rows.length?rows.join(''):'<tr><td colspan="6" class="dim" style="text-align:center;padding:16px">no peers</td></tr>';
+  sorted.forEach((x,i)=>fillGeo(i,(x.address||'').split(':')[0],false));
  }catch(e){}
 }
 head();blocks();miners();peers();setInterval(()=>{head();blocks();peers()},5000);
