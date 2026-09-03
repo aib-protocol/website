@@ -204,14 +204,15 @@ function getGeo(ip){
  }).catch(()=>{delete geoInflight[ip];return null});
  return geoInflight[ip];
 }
-function fillGeo(i,ip,detail){
+function fillGeo(i,ip){
  getGeo(ip).then(g=>{
   if(!g)return;
-  const el=$(detail?'geod-'+i:'geo-'+i);if(!el)return;
-  if(detail){el.innerHTML=g.cc?`<span class="mono">${ccFlag(g.cc)} ${esc(g.city?g.city+', ':'')}${esc(g.country)}</span>${g.cc?' <span class="dim">('+esc(g.cc)+'+)</span>':''}`:'<span class="dim">lookup unavailable</span>';}
-  else{el.textContent=g.cc?(g.city?g.city:g.country):'';}
-  const d=$('geodd-'+i);
-  if(d&&g.cc)d.innerHTML=`<div><span class="dim">NETWORK:</span> <span class="mono">${esc([g.isp||g.org,g.asn?('AS'+g.asn):'',g.domain].filter(Boolean).join(' · '))||'—'}</span></div>`;
+  const el=$('geo-'+i);
+  if(el)el.textContent=g.cc?(ccFlag(g.cc)+' '+(g.city||g.country)):'';
+  const d=$('geod-'+i);
+  if(d)d.innerHTML=g.cc?`<span class="mono">${ccFlag(g.cc)} ${esc(g.city?g.city+', ':'')}${esc(g.country)}</span> <span class="dim">(${esc(g.cc)}+) · ${esc(g.region||'')}</span>`:'<span class="dim">lookup unavailable</span>';
+  const nd=$('geodd-'+i);
+  if(nd&&g.cc)nd.innerHTML=`<div><span class="dim">NETWORK:</span> <span class="mono">${esc([g.isp||g.org,g.asn?('AS'+g.asn):'',g.domain].filter(Boolean).join(' · '))||'—'}</span></div>`;
  });
 }
 async function peers(){
