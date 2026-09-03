@@ -38,6 +38,7 @@ tr:hover td{background:rgba(0,229,255,.03);cursor:pointer}
 .gd{color:#ffd76a}
 .tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10.5px;background:rgba(34,197,94,.12);color:#22c55e}
 .tagv{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10.5px;background:rgba(0,229,255,.12);color:#00e5ff}
+.tago{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10.5px;background:rgba(245,158,11,.15);color:#f59e0b}
 .tags{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10.5px;background:rgba(122,138,160,.12);color:#7a8aa0}
 #detail{display:none}
 #detail .panel{border-color:rgba(0,229,255,.25)}
@@ -176,8 +177,17 @@ function search(){
 function goLatest(){hideDetail();window.scrollTo(0,0);return false}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function togglePeer(id){const el=$(id);if(el)el.style.display=el.style.display==='none'?'':'none';}
+function vnum(ua){const m=/aib-node\/v?([0-9.]+)/.exec(ua||'');return m?m[1].split('.').map(Number):[0,0,0];}
+function vlt(a,b){const A=vnum(a),B=vnum(b);for(let i=0;i<3;i++){if((A[i]||0)!==(B[i]||0))return (A[i]||0)<(B[i]||0);}return false;}
+let LATEST_UA='';
+async function latestUA(){
+  if(LATEST_UA)return LATEST_UA;
+  try{const r=await api('/v1/release/latest');const d=r&&r.data;if(d&&d.name)LATEST_UA='aib-node/'+d.name.replace(/-testnet$/,'');}catch(e){}
+  return LATEST_UA;
+}
 async function peers(){
  try{
+  const latest=await latestUA();
   const p=await api('/v1/peers').then(r=>r.data);
   const sorted=(p.peers||[]).slice().sort((a,b)=>(a.address||'').localeCompare(b.address||''));
   const rows=[];
@@ -190,12 +200,15 @@ async function peers(){
     const ht=x.height?`<span class="gd">${x.height.toLocaleString()}</span>`:'<span class="dim">—</span>';
     const port=(x.address||'').split(':')[1]||'';
     const ipq=ip.replace(/\./g,'-');
-    rows.push(`<tr onclick="togglePeer('pd-${i}')" style="cursor:pointer"><td class="mono">${esc(ip)}</td><td class="dim">${esc(x.nickname||x.id)}</td><td>${role}</td><td>${sa}</td><td>${ht}</td><td class="dim">${ls}</td></tr>`);
+    const ubadge=x.user_agent&&latest&&vlt(x.user_agent,latest)?' <span class="tago" style="margin-left:6px">⚠ OUTDATED</span>':(x.user_agent?'':' <span class="tago" style="margin-left:6px">⚠ OLD BUILD</span>');
+    rows.push(`<tr onclick="togglePeer('pd-${i}')" style="cursor:pointer"><td class="mono">${esc(ip)}${ubadge}</td><td class="dim">${esc(x.nickname||x.id)}</td><td>${role}</td><td>${sa}</td><td>${ht}</td><td class="dim">${ls}</td></tr>`);
     rows.push(`<tr id="pd-${i}" class="peerdetail" style="display:none"><td colspan="6" style="padding:0"><div style="padding:12px 18px;background:rgba(0,229,255,.04);border-top:1px solid rgba(255,255,255,.05);font-size:12px;line-height:1.9">
       <div><span class="dim">NODE ID:</span> <span class="mono">${esc(x.id||'—')}</span>${x.user_agent?` <span class="tagv" style="margin-left:8px">${esc(x.user_agent)}</span>`:''}</div>
       <div><span class="dim">ENDPOINT:</span> <span class="mono">${esc(x.address||'—')}</span></div>
       <div><span class="dim">STAKE ADDRESS:</span> ${x.stake_addr?`<span class="mono" style="cursor:pointer" onclick="event.stopPropagation();showAddr('${esc(x.stake_addr)}')">${esc(x.stake_addr)}</span>`:'<span class="dim">no stake — sync-only node</span>'}</div>
-      <div><span class="dim">CHAIN HEIGHT:</span> <span class="gd">${x.height?x.height.toLocaleString():'—'}</span> <span class="dim">(click row again to collapse)</span></div>
+      <div><span class="dim">CHAIN HEIGHT:</span> <span class="gd">${x.height?x.height.toLocaleString():'—'}</span></div>
+      ${x.user_agent&&latest&&vlt(x.user_agent,latest)?`<div style="margin-top:4px"><span class="tago">⚠ OUTDATED</span> <span class="dim">client v${vnum(x.user_agent).join('.')} is older than on-chain release ${esc((latest||'').replace('aib-node/',''))} — operator should upgrade: curl -sSfL http://${esc(ip)}:51413/install.sh is served by any node</span></div>`:(x.user_agent?'':'<div style="margin-top:4px"><span class="tago">⚠ OLD BUILD</span> <span class="dim">no user agent — predates version reporting</span></div>')}
+      <div class="dim" style="margin-top:2px">(click row again to collapse)</div>
       ${x.stake_addr?'':''}</div></td></tr>`);
   });
   $('peers').innerHTML=rows.length?rows.join(''):'<tr><td colspan="6" class="dim" style="text-align:center;padding:16px">no peers</td></tr>';
