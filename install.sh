@@ -7,7 +7,7 @@ VERSION="v0.11.27-testnet"
 REPO="aib-protocol/aib"
 # Pinned artifact hashes (multi-source integrity anchor).
 # Every source must match the pinned hash or the installer refuses to run.
-PINNED_SHA256_AMD64="08da573651040d8d4dcdcab9732eeb265757e291e657719e961555cd0de4ee68"
+PINNED_SHA256_AMD64="7bee398340d5be69039e85627d268980f9494fa0a668b10fc30afd6ed0d14b6c"
 PINNED_SHA256_ARM64="__ARM64__"
 INSTALL_DIR="${AIB_HOME:-$HOME/.aib}"
 BIN_DIR="$INSTALL_DIR/bin"
