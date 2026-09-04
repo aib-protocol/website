@@ -26,7 +26,7 @@ die()   { printf '\033[1;31m[AIB] ERROR:\033[0m %s\n' "$*" >&2; exit 1; }
 # on-chain release anchor) from every known node, takes the MAJORITY
 # record, and compares BOTH hashes: the running script and the binary.
 VERIFY_NODES=(
-  "http://182.61.43.222:51413"
+  "http://182.61.43.222:51414"
   "http://212.56.43.128:51413"
   "http://212.56.43.128:51415"
   "http://154.53.40.40:51414"
@@ -103,7 +103,7 @@ fi
 SOURCES=(
   "https://github.com/${REPO}/releases/download/${VERSION}"
   "https://aib.one/releases/${VERSION}"
-  "http://182.61.43.222:51413/${VERSION}"
+  "http://182.61.43.222:51414/${VERSION}"
   "http://154.53.40.40:51414/${VERSION}"
   "http://216.180.75.219:51413/${VERSION}"
   "http://144.91.108.90:51413/${VERSION}"
